@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة الليدر — Studio</title>
+<meta name="description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
+<meta name="theme-color" content="#0B0D10">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Studio">
+<meta property="og:locale" content="ar_AR">
+<meta property="og:title" content="لوحة الليدر — Studio">
+<meta property="og:description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
+<meta property="og:url" content="https://gigversestudio.click/dashboard-leader.html">
+<meta property="og:image" content="https://gigversestudio.click/assets/og-image.png?v=1">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Studio">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="لوحة الليدر — Studio">
+<meta name="twitter:description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
+<meta name="twitter:image" content="https://gigversestudio.click/assets/og-image.png?v=1">
+<link rel="stylesheet" href="css/studio.css">
+<script src="js/config.js"></script>
+<script src="js/studio-i18n-dict.js"></script>
+<script src="js/studio-i18n.js"></script>
+</head>
+<body class="studio">
+
+<header class="studio-header">
+  <div class="studio-logo"><span class="dot"></span> Studio</div>
+  <nav>
+    <span id="leader-name" class="studio-text-muted" style="color:var(--studio-text-muted);"></span>
+    <a href="#" id="logout-link" class="studio-btn studio-btn-secondary" style="padding:8px 16px;">خروج</a>
+  </nav>
+</header>
+
+<main class="studio-shell wide">
+  <div class="studio-card" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:16px;">
+    <div>
+      <div class="studio-eyebrow">كود الليدر بتاعك</div>
+      <div class="studio-code" style="font-size:1.3rem;" id="leader-code">—</div>
+    </div>
+    <p class="studio-subtitle" style="margin:0; max-width:360px;">شارك الكود ده مع أي تاسك تختار تشتغل عليه — التسليمات اللي بتوصل بيه بتتربط بيك تلقائيًا.</p>
+  </div>
+
+  <div id="share-links" style="margin-top:18px;"></div>
+
+  <div class="studio-card" style="margin-top:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+    <div><div class="studio-eyebrow">تاسكات مفتوحة ليك</div><div class="studio-title" style="font-size:1.8rem; margin:0;" id="stat-open">—</div></div>
+    <p class="studio-hint" style="margin:0; max-width:420px;">الأرقام تحت متفصّلة لكل تاسك لوحده.</p>
+  </div>
+
+  <div id="task-boxes"><p class="studio-hint" style="margin-top:18px;">جاري التحميل...</p></div>
+
+
+  <div class="studio-card" style="margin-top:18px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+      <h3 style="margin:0;">👥 فريقك</h3>
+      <button type="button" class="studio-btn studio-btn-secondary" style="padding:6px 14px; font-size:0.85rem;" id="refresh-btn">تحديث</button>
+    </div>
+    <div id="team-wrap" style="margin-top:12px;"><p class="studio-hint">جاري التحميل...</p></div>
+  </div>
+
+  <div class="studio-card" style="margin-top:18px;">
+    <h3 style="margin-top:0;">📩 فيدباك الشركة على فريقك</h3>
+    <div id="feedback-wrap"><p class="studio-hint">جاري التحميل...</p></div>
+  </div>
+
+  <div class="studio-card" style="margin-top:18px;">
+    <h3 style="margin-top:0;">تاسكات متاحة ليك</h3>
+    <div id="tasks-wrap"><p class="studio-hint">جاري التحميل...</p></div>
+  </div>
+</main>
+
+<script src="js/studio-shared.js"></script>
+<script src="js/studio-share.js"></script>
+<script>
+  const user = NMStudio.requireStudioRole("leader");
+  if (user) {
+    document.getElementById("leader-name").textContent = user.name;
+    document.getElementById("leader-code").textContent = user.leader_code;
+    StudioShare.mount("share-links", { leaderCode: user.leader_code });
+  }
+  const esc = (s) => { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; };
+  const FB_STATUS = {
+    pending: ["status-pending", "⏳ مستني المتسجّل"],
+    acknowledged: ["status-pending", "👀 المتسجّل فتح الإعادة"],
+    reworked: ["status-approved", "✅ اتعادت"],
+    expired: ["status-rejected", "⛔ اتسحب الاسم"],
+  };
+  async function loadFeedback() {
+    const wrap = document.getElementById("feedback-wrap");
+    try {
+      const { items } = await NMStudio.apiMyFeedback();
+      if (!items.length) { wrap.innerHTML = `<div class="studio-empty"><div class="icon">📭</div><p>مفيش فيدباك على فريقك لحد دلوقتي.</p></div>`; return; }
+      wrap.innerHTML = `<div class="studio-table-wrap"><table class="studio-table">
+        <thead><tr><th>المتسجّل</th><th>المهمة</th><th>التسجيلات</th><th>المشكلة</th><th>الحالة</th><th>المهلة</th></tr></thead>
+        <tbody>${items.slice(0, 50).map((i) => {
+          const st = i.is_final ? ["status-rejected", "🚫 رفض نهائي"] : i.overdue ? ["status-rejected", "⏰ متأخر"] : (FB_STATUS[i.status] || ["", i.status]);
+          const left = (i.status === "reworked" || i.status === "expired") ? null : NMStudio.timeLeft(i.rework_deadline);
+          return `<tr>
+            <td><span class="studio-code">${esc(i.fake_name)}</span><br>${esc(i.real_name || "")}<br><span style="font-family:var(--studio-mono); font-size:0.8rem; direction:ltr; unicode-bidi:plaintext;">${esc(i.email || "")}</span></td>
+            <td>${esc(i.task_title)}</td>
+            <td>${(i.recording_numbers || []).map((n) => `<span class="studio-code" style="margin:0 2px;">${n}</span>`).join("")}</td>
+            <td>${esc(i.issue_description || "—")}</td>
+            <td><span class="studio-pill ${st[0]}">${st[1]}</span></td>
+            <td style="${left && left.overdue ? "color:var(--studio-danger); font-weight:700;" : ""}">${left ? esc(left.text) : "—"}</td>
+          </tr>`;
+        }).join("")}</tbody></table></div>`;
+    } catch (err) { wrap.innerHTML = `<div class="studio-empty"><p>${esc(err.message)}</p></div>`; }
+  }
+  if (user) loadFeedback();
+
+  // ---- team + tasks (the talents who signed up under this leader's code) ----
+  const SESSION_STATUS = {
+    in_progress: ["status-pending", "⏳ بيسجّل"],
+    submitted: ["status-pending", "📥 مستني مراجعة QA"],
+    reviewing: ["status-pending", "👀 QA بيراجع"],
+    approved: ["status-approved", "✅ معتمد"],
+    rejected: ["status-rejected", "↩️ مرفوض — محتاج إعادة"],
+  };
+  const TASK_STATUS = { published: ["status-approved", "منشورة"], closed: ["status-pending", "مقفولة"] };
+  const setStat = (id, v) => { document.getElementById(id).textContent = v; };
+  const ltr = "font-family:var(--studio-mono); font-size:0.8rem; direction:ltr; unicode-bidi:plaintext;";
+
+  async function loadOverview() {
+    const team = document.getElementById("team-wrap"), tasks = document.getElementById("tasks-wrap");
+    try {
+      const { stats, tasks: tl, sessions } = await NMStudio.apiLeaderOverview();
+      setStat("stat-open", stats.openTasks);
+      // one block of boxes PER TASK (not one total for everything)
+      const box = (label, v, sub) => `<div class="studio-card"><div class="studio-eyebrow">${label}</div><div class="studio-title" style="font-size:1.8rem;">${v}</div>${sub ? `<div class="studio-hint" style="margin-top:4px;">${sub}</div>` : ""}</div>`;
+      document.getElementById("task-boxes").innerHTML = !tl.length
+        ? `<div class="studio-card" style="margin-top:18px;"><div class="studio-empty"><div class="icon">📋</div><p>الهيد ليدر لسه ما ربطش كودك بأي مهمة.</p></div></div>`
+        : tl.map((t) => {
+            const ts = TASK_STATUS[t.status] || ["", t.status];
+            return `<div class="studio-card" style="margin-top:18px;">
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span></div>
+              <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-top:14px;">
+                ${box("لسه بيسجّلوا", t.in_progress)}
+                ${box("اتراجع من خلالنا", t.reviewed_by_us, t.reviewed_by_us_delivered ? `منهم اتسلّم للشركة: ${t.reviewed_by_us_delivered}` : "")}
+                ${box("اتراجع من الشركة (فيه جمل إعادة)", t.reviewed_by_company)}
+                ${box("رفض نهائي", t.final_rejected)}
+                ${box("تسليمات مرفوضة", t.rejected)}
+              </div></div>`;
+          }).join("");
+
+      team.innerHTML = !sessions.length
+        ? `<div class="studio-empty"><div class="icon">👥</div><p>لسه محدش سجّل بكودك. ابعت لينك المتسجّلين اللي فوق.</p></div>`
+        : `<div class="studio-table-wrap"><table class="studio-table">
+            <thead><tr><th>المتسجّل</th><th>المهمة</th><th>التقدّم</th><th>الحالة</th><th>ملاحظة</th></tr></thead>
+            <tbody>${sessions.map((x) => {
+              const CAT = {
+                company: ["status-rejected", "↩️ اتراجع من الشركة — محتاج إعادة"],
+                final: ["status-rejected", "🚫 رفض نهائي"],
+              };
+              const st = CAT[x.cat] || (x.status === "approved" && x.delivered ? ["status-approved", "📦 اتسلّم للشركة"] : x.status === "approved" ? ["status-approved", "✅ اتراجع من خلالنا"] : (SESSION_STATUS[x.status] || ["", x.status]));
+              const showNote = x.status === "rejected" || x.cat === "company";
+              const left = showNote && x.rework_deadline ? NMStudio.timeLeft(x.rework_deadline) : null;
+              const note = showNote
+                ? `${esc(x.rejection_reason || "")}${left ? `<br><span style="${left.overdue ? "color:var(--studio-danger); font-weight:700;" : ""}">${esc(left.text)}</span>` : ""}`
+                : "—";
+              return `<tr>
+                <td><span class="studio-code">${esc(x.fake_name)}</span><br>${esc(x.real_name || "")}
+                  ${x.whatsapp ? `<br><span style="${ltr}">${esc(x.whatsapp)}</span>` : ""}
+                  ${x.email ? `<br><span style="${ltr}">${esc(x.email)}</span>` : ""}</td>
+                <td>${esc(x.task_title)}</td>
+                <td><span style="${ltr}">${x.recorded} / ${x.total}</span></td>
+                <td><span class="studio-pill ${st[0]}">${st[1]}</span>${x.accepted_at ? `<div style="margin-top:6px;"><span class="studio-pill status-approved">🏆 مقبول من الشركة</span></div>` : ""}</td>
+                <td>${note}</td>
+              </tr>`;
+            }).join("")}</tbody></table></div>`;
+
+      tasks.innerHTML = !tl.length
+        ? `<div class="studio-empty"><div class="icon">📋</div><p>الهيد ليدر لسه ما ربطش كودك بأي مهمة.</p></div>`
+        : `<div class="studio-table-wrap"><table class="studio-table">
+            <thead><tr><th>المهمة</th><th>الحالة</th><th>المتسجّلين</th><th>بيسجّلوا</th><th>اتراجع من خلالنا</th><th>اتراجع من الشركة</th><th>رفض نهائي</th><th>مرفوضة</th><th>مقبول من الشركة</th></tr></thead>
+            <tbody>${tl.map((t) => {
+              const ts = TASK_STATUS[t.status] || ["", t.status];
+              return `<tr><td>${esc(t.title)}</td><td><span class="studio-pill ${ts[0]}">${ts[1]}</span></td>
+                <td>${t.sessions}</td><td>${t.in_progress}</td><td>${t.reviewed_by_us}</td><td>${t.reviewed_by_company}</td><td>${t.final_rejected}</td><td>${t.rejected}</td><td>${t.accepted || 0}</td></tr>`;
+            }).join("")}</tbody></table></div>`;
+    } catch (err) {
+      const msg = `<div class="studio-empty"><p>${esc(err.message)}</p></div>`;
+      team.innerHTML = msg; tasks.innerHTML = msg; document.getElementById("task-boxes").innerHTML = msg;
+    }
+  }
+  if (user) loadOverview();
+  document.getElementById("refresh-btn").addEventListener("click", () => { loadOverview(); loadFeedback(); });
+
+  document.getElementById("logout-link").addEventListener("click", (e) => {
+    e.preventDefault();
+    NMStudio.logout();
+    location.href = "login.html";
+  });
+</script>
+</body>
+</html>

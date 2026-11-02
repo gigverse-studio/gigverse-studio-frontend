@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>بياناتك — Studio</title>
+<meta name="description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
+<meta name="theme-color" content="#0B0D10">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Studio">
+<meta property="og:locale" content="ar_AR">
+<meta property="og:title" content="بياناتك — Studio">
+<meta property="og:description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
+<meta property="og:url" content="https://gigversestudio.click/talent-setup.html">
+<meta property="og:image" content="https://gigversestudio.click/assets/og-image.png?v=1">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Studio">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="بياناتك — Studio">
+<meta name="twitter:description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
+<meta name="twitter:image" content="https://gigversestudio.click/assets/og-image.png?v=1">
+<link rel="stylesheet" href="css/studio.css">
+<script src="js/config.js"></script>
+<script src="js/studio-i18n-dict.js"></script>
+<script src="js/studio-i18n.js"></script>
+</head>
+<body class="studio">
+
+<header class="studio-header">
+  <a href="tasks.html" style="text-decoration:none; color:inherit;"><div class="studio-logo"><span class="dot"></span> Studio</div></a>
+</header>
+
+<main class="studio-shell">
+  <div class="studio-card">
+    <div class="studio-eyebrow">بياناتك</div>
+    <h1 class="studio-title" id="task-title">جاري التحميل...</h1>
+
+    <!-- v10: a password-protected task asks for its password first; everything below stays hidden until it is typed -->
+    <div id="gate" class="hidden">
+      <div style="font-size:2rem; margin-bottom:6px;">🔒</div>
+      <h3 style="margin:0 0 6px;">المهمة دي محمية بكلمة سر</h3>
+      <p class="studio-subtitle" style="margin-bottom:12px;">اكتب كلمة السر اللي اتبعتتلك عشان تفتح المهمة وتكمل.</p>
+      <div class="studio-field">
+        <label for="gate-password">كلمة السر</label>
+        <div style="display:flex; gap:8px;">
+          <input type="password" id="gate-password" autocomplete="off" dir="ltr" style="flex:1;">
+          <button type="button" class="studio-btn studio-btn-secondary" id="gate-toggle">إظهار</button>
+        </div>
+      </div>
+      <p class="studio-error" id="gate-error"></p>
+      <button type="button" class="studio-btn studio-btn-primary studio-btn-block" id="gate-btn">فتح المهمة</button>
+    </div>
+
+    <div id="main-form">
+    <!-- v8: gender / age / age group come from the account — nothing to choose here, only to confirm -->
+    <div id="my-data" class="hidden" style="background:var(--studio-surface-2); border-radius:12px; padding:12px 14px; margin-bottom:16px;">
+      <div id="my-data-rows" style="display:grid; grid-template-columns:auto 1fr; gap:6px 14px; align-items:baseline;"></div>
+    </div>
+    <p class="studio-hint" id="slot-note"></p>
+
+    <!-- fake-name / code tasks only: pick one. Real-name tasks skip this: the file carries the account's name -->
+    <div id="tab-fake-name" class="hidden">
+      <p class="studio-subtitle" id="name-subtitle">اختار اسم مستعار (مش هيظهر حد تاني بيه)</p>
+      <select id="fake-name-select" style="margin-bottom:14px;"></select>
+    </div>
+
+    <p class="studio-hint hidden" id="real-note">اسمك الحقيقي هو اللي هيظهر في اسم الملف.</p>
+
+    <p class="studio-error" id="final-error"></p>
+    <button type="button" class="studio-btn studio-btn-primary studio-btn-block" id="start-btn" disabled>🎙️ ابدأ التسجيل</button>
+    <button type="button" class="studio-btn studio-btn-secondary studio-btn-block hidden" id="relogin-btn" style="margin-top:10px;">إنشاء حساب جديد</button>
+    </div>
+  </div>
+</main>
+
+<script src="js/studio-talent.js"></script>
+<script>
+  const params = new URLSearchParams(location.search);
+  const taskId = params.get("taskId");
+  const leaderId = params.get("leaderId");
+  if (!taskId) location.href = "tasks.html";          // leaderId is missing on purpose for direct tasks (checked once the task loads)
+  NMTalent.requireLogin(location.pathname + location.search);
+
+  let task = null;                       // the task with its places left (slots)
+  let me = null;                         // the live account: name, gender, age, age_bracket
+  const $ = (id) => document.getElementById(id);
+  const GENDER_AR = { male: "ذكر", female: "أنثى" };
+  const BRACKET_AR = { child: "طفل", adult: "بالغ", elderly: "مسن" };
+  const isReal = () => task && task.identity_mode === "real";
+  const useCodes = () => task && task.identity_mode === "codes";
+
+  // places left for THIS talent's own gender (and age group when the task uses them); null = no limit on the task
+  function myRemaining() {
+    if (!task || !task.limited || !me) return null;
+    const list = task.slots.filter(s => s.gender === me.gender && (!task.use_age_brackets || s.ageBracket === me.age_bracket));
+    return list.reduce((n, s) => n + (s.max === 0 ? 0 : s.remaining), 0);
+  }
+
+  function renderMyData() {
+    const row = (k, v, ltr) => `<span class="studio-hint" style="margin:0;">${k}</span><b${ltr ? ' dir="ltr" style="text-align:start;"' : ""}>${v}</b>`;
+    $("my-data-rows").innerHTML =
+      row("<span>الاسم</span>", escapeHtml(me.name), true) +
+      row("<span>النوع</span>", `<span>${GENDER_AR[me.gender]}</span>`) +
+      row("<span>السن</span>", String(me.age), true) +
+      row("<span>الفئة العمرية</span>", `<span>${BRACKET_AR[me.age_bracket] || ""}</span>`);
+    $("my-data").classList.remove("hidden");
+  }
+  function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+
+  function refreshButton() {
+    const left = myRemaining();
+    const full = left !== null && left <= 0;
+    $("slot-note").innerHTML = full ? `<span>تم الاكتفاء</span>` : left === null ? "" : `<span>متبقي</span> <span dir="ltr">${left}</span>`;
+    const needsPick = !isReal();
+    const picked = !needsPick || !!$("fake-name-select").value;
+    $("start-btn").disabled = full || !picked;
+  }
+
+  async function loadFakeNames() {
+    const select = $("fake-name-select");
+    select.innerHTML = `<option value="">جاري التحميل...</option>`;
+    $("name-subtitle").textContent = useCodes() ? "اختار الكود بتاعك" : "اختار اسم مستعار (مش هيظهر حد تاني بيه)";
+    try {
+      const names = await NMTalent.getAvailableFakeNames(taskId, me.gender, me.age_bracket);   // codes split by age group: his own group only
+      if (!names.length) {
+        select.innerHTML = useCodes() ? `<option value="">مفيش أكواد متاحة دلوقتي</option>` : `<option value="">مفيش أسامي متاحة دلوقتي</option>`;
+      } else {
+        select.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+      }
+    } catch (err) {
+      if (err.code === "task_locked") { showGate("كلمة السر اتغيّرت أو انتهت صلاحيتها. اكتبها تاني."); return; }
+      select.innerHTML = `<option value="">تعذر التحميل</option>`;
+    }
+    refreshButton();
+  }
+
+  $("fake-name-select").addEventListener("change", refreshButton);
+
+  $("start-btn").addEventListener("click", async () => {
+    const errorBox = $("final-error");
+    errorBox.style.display = "none";
+    const btn = $("start-btn");
+    btn.disabled = true; btn.textContent = "جاري البدء...";
+    try {
+      // gender / age / age group are NOT sent: the server reads them from the account
+      const { session } = await NMTalent.createSession({
+        taskId, ...(leaderId ? { leaderId } : {}),
+        ...(isReal() ? {} : { fakeName: $("fake-name-select").value }),
+      });
+      NMTalent.saveSessionToken(taskId, session.session_token);
+      location.href = `recording.html?session=${session.session_token}`;
+    } catch (err) {
+      errorBox.textContent = err.message;
+      errorBox.style.display = "block";
+      btn.textContent = "🎙️ ابدأ التسجيل";
+      if (err.code === "task_locked") { showGate("كلمة السر اتغيّرت أو انتهت صلاحيتها. اكتبها تاني."); return; }
+      if (err.message.includes("الاسم") || err.message.includes("الكود")) { if (!isReal()) loadFakeNames(); }
+      // somebody took the last place a second before: reload the places left
+      else if (err.message.includes("الاكتفاء") || err.message.includes("مش مطلوبين")) { await refreshTask(); }
+      refreshButton();
+    }
+  });
+
+  $("relogin-btn").addEventListener("click", () => { NMTalent.logout(); location.href = "talent-login.html?mode=signup"; });
+
+  async function refreshTask() {
+    try {
+      const detail = await NMTalent.getTaskDetail(taskId);
+      task = detail.task;
+      // v4: when the task limits how many each leader brings, show the places left under THIS leader's code
+      // (the task's own total still applies on the server). Tasks without it behave exactly as before.
+      const mine = detail.leaderSlots && leaderId && detail.leaderSlots[leaderId];
+      if (mine && mine.limited) task = { ...task, limited: true, slots: mine.slots };
+      if (!task.direct && !leaderId) { location.href = "tasks.html"; return; }   // a normal task needs the leader's code
+      $("task-title").textContent = task.title;
+    } catch (_) {
+      $("task-title").textContent = "بياناتك";
+    }
+    refreshButton();
+  }
+
+  // ---- v10: password gate
+  function showGate(message) {
+    NMTalent.setUnlock(taskId, "");
+    $("main-form").classList.add("hidden");
+    $("gate").classList.remove("hidden");
+    const box = $("gate-error");
+    if (message) { box.textContent = message; box.style.display = "block"; } else box.style.display = "none";
+    $("gate-password").value = "";
+    $("gate-password").focus();
+  }
+  async function enterTask() {
+    $("gate").classList.add("hidden");
+    $("main-form").classList.remove("hidden");
+    if (isReal()) $("real-note").classList.remove("hidden");
+    else { $("tab-fake-name").classList.remove("hidden"); await loadFakeNames(); }
+    refreshButton();
+  }
+  $("gate-toggle").addEventListener("click", () => {
+    const inp = $("gate-password"), show = inp.type === "password";
+    inp.type = show ? "text" : "password";
+    $("gate-toggle").textContent = show ? "إخفاء" : "إظهار";
+  });
+  async function submitGate() {
+    const box = $("gate-error"), btn = $("gate-btn"), pw = $("gate-password").value;
+    box.style.display = "none";
+    if (!pw.trim()) { box.textContent = "اكتب كلمة السر"; box.style.display = "block"; return; }
+    btn.disabled = true; btn.textContent = "جاري التحقق...";
+    try {
+      await NMTalent.unlockTask(taskId, pw);
+      await enterTask();
+    } catch (err) {
+      box.textContent = err.message; box.style.display = "block";
+      $("gate-password").select();
+    } finally {
+      btn.disabled = false; btn.textContent = "فتح المهمة";
+    }
+  }
+  $("gate-btn").addEventListener("click", submitGate);
+  $("gate-password").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submitGate(); } });
+
+  (async function init() {
+    try { me = await NMTalent.getMe(); } catch (err) { me = NMTalent.currentTalent(); }
+    if (!me || !me.gender || !me.age) {
+      // an account made before the real data existed: it has to be re-created once
+      $("task-title").textContent = "بياناتك ناقصة";
+      $("final-error").textContent = "حسابك ناقص بيانات (النوع والسن). اعمل حساب جديد ببياناتك وجرّب تاني.";
+      $("final-error").style.display = "block";
+      $("start-btn").classList.add("hidden");
+      $("relogin-btn").classList.remove("hidden");
+      return;
+    }
+    renderMyData();
+    await refreshTask();
+    if (!task) return;
+    // a protected task: ask for the password first (unless this tab already unlocked it)
+    if (task.password_protected && !NMTalent.getUnlock(taskId)) { showGate(); return; }
+    await enterTask();
+  })();
+</script>
+</body>
+</html>

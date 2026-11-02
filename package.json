@@ -1,0 +1,8 @@
+{
+  "name": "gigverse-studio-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Gigverse Studio website (static pages). No build step. Only needed for the optional UI tests.",
+  "scripts": { "test": "node --test tests-optional/*.test.js" },
+  "devDependencies": { "jsdom": "^30.1.3" }
+}
