@@ -108,8 +108,41 @@
   }
   // gender (v9): "any" (default) | "male" | "female" = who the uploaded scripts are for.
   // mode: "append" | "replace" (only the scripts of that gender group) | "replace_all" (every script of the task)
-  function apiUploadScripts(taskId, files, mode, gender) {
-    return apiUploadMany(`/api/studio/headleader/tasks/${taskId}/scripts`, Array.from(files).map((f) => ["files", f]), { mode: mode || "append", gender: gender || "any" });
+  // The host (Vercel) refuses any single request bigger than ~4.5 MB, and a refused request comes back to the browser as a
+  // plain "couldn't connect". So many/big script files are sent automatically in several smaller requests, one after the other
+  // (the person still presses ONE button). Small sets go in ONE request, exactly as before.
+  //   onProgress(done, total) is called after every part. If a later part fails, the error carries
+  //   { uploadedCount, totalCount, remaining } so the page can tell what already went in and what is left.
+  const SCRIPTS_PART_BYTES = 3.5 * 1024 * 1024;   // safe room under the 4.5 MB limit (the form adds a little on top)
+  const SCRIPTS_PART_FILES = 20;                  // and never more than this many files per request
+  const SCRIPT_MAX_FILE_BYTES = 4 * 1024 * 1024;  // one file bigger than this can't fit in any request
+  async function apiUploadScripts(taskId, files, mode, gender, onProgress) {
+    // same natural order the server uses (script2 before script10), so positions stay in the right order across parts
+    const list = Array.from(files).sort((a, b) => String(a.name).localeCompare(String(b.name), "en", { numeric: true, sensitivity: "base" }));
+    const tooBig = list.find((f) => f.size > SCRIPT_MAX_FILE_BYTES);
+    if (tooBig) throw new Error("ملف السكريبت \"" + tooBig.name + "\" حجمه كبير أوي. قسّمه لملفات أصغر.");
+    const parts = [];
+    let cur = [], curBytes = 0;
+    for (const f of list) {
+      if (cur.length && (cur.length >= SCRIPTS_PART_FILES || curBytes + f.size > SCRIPTS_PART_BYTES)) { parts.push(cur); cur = []; curBytes = 0; }
+      cur.push(f); curBytes += f.size;
+    }
+    if (cur.length) parts.push(cur);
+    let result = null, added = 0, done = 0;
+    for (let i = 0; i < parts.length; i++) {
+      try {
+        // only the FIRST part may replace; every later part just adds next to what is already in
+        result = await apiUploadMany(`/api/studio/headleader/tasks/${taskId}/scripts`, parts[i].map((f) => ["files", f]),
+          { mode: i === 0 ? (mode || "append") : "append", gender: gender || "any" });
+      } catch (err) {
+        err.uploadedCount = done; err.totalCount = list.length; err.remaining = list.slice(done);
+        throw err;
+      }
+      added += (result && result.added) || parts[i].length;
+      done += parts[i].length;
+      if (typeof onProgress === "function") onProgress(done, list.length);
+    }
+    return { ...result, added };
   }
   // decide who ALREADY uploaded scripts are for: gender = "male" | "female" | "any"
   function apiAssignScripts(taskId, scriptIds, gender) {

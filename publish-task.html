@@ -366,7 +366,14 @@
     try {
       // nobody has started yet, so uploading again just replaces: the first group clears what was uploaded before, the rest are added next to it
       let result = null;
-      for (let i = 0; i < groups.length; i++) result = await NMStudio.apiUploadScripts(createdTask.id, groups[i][1], i === 0 ? "replace_all" : "append", groups[i][0]);
+      // one button, but big sets are sent in several smaller requests automatically (progress shown on the button)
+      const total = groups.reduce((n, g) => n + g[1].length, 0);
+      let before = 0;
+      for (let i = 0; i < groups.length; i++) {
+        result = await NMStudio.apiUploadScripts(createdTask.id, groups[i][1], i === 0 ? "replace_all" : "append", groups[i][0],
+          (done) => { btn.textContent = `جاري الرفع ${before + done} من ${total} ملف...`; });
+        before += groups[i][1].length;
+      }
       scriptsUploaded = result.scriptCount;
       const g = result.byGender || { male: 0, female: 0, any: 0 };
       successBox.innerHTML = `<span>✓ اترفع عدد السكريبتات:</span> <span dir="ltr">${result.scriptCount}</span>` +

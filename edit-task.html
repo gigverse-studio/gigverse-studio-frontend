@@ -693,14 +693,23 @@
     clearMsgs("scripts-error", "scripts-success");
     const files = $("add-scripts-files").files;
     if (!files.length) return showMsg("scripts-error", "اختار ملفات txt الأول.");
+    const btn = this;
     await busy(this, "جاري الرفع...", async () => {
       try {
-        const r = await NMStudio.apiUploadScripts(taskId, files, "append", $("add-scripts-for").value);
+        const r = await NMStudio.apiUploadScripts(taskId, files, "append", $("add-scripts-for").value,
+          (done, total) => { btn.textContent = `جاري الرفع ${done} من ${total} ملف...`; });
         $("add-scripts-files").value = "";
         await reloadTask();
         $("scripts-success").innerHTML = `<span>✓ اتضاف عدد السكريبتات:</span> <span dir="ltr">${r.added}</span>`;
         $("scripts-success").style.display = "block"; setTimeout(() => clearMsgs("scripts-success"), 3500);
-      } catch (err) { showMsg("scripts-error", err.message); }
+      } catch (err) {
+        if (err.uploadedCount > 0) {
+          // part of the files already went in: keep ONLY the rest selected so pressing the button again doesn't add the same ones twice
+          try { const dt = new DataTransfer(); err.remaining.forEach((f) => dt.items.add(f)); $("add-scripts-files").files = dt.files; } catch (_) {}
+          try { await reloadTask(); } catch (_) {}
+          showMsg("scripts-error", `اترفع ${err.uploadedCount} من ${err.totalCount} ملف قبل ما يحصل خطأ. الملفات المتبقية لسه مختارة — اضغط رفع تاني.`);
+        } else showMsg("scripts-error", err.message);
+      }
     });
   });
   const CODE_KEYS = ["male", "female", "male_child", "male_adult", "male_elderly", "female_child", "female_adult", "female_elderly"];
