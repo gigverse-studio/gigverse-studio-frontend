@@ -165,3 +165,6 @@ body.studio {
 .tc-dash { color: var(--studio-text-muted); opacity: .5; }
 .tc-foot { margin-top: auto; padding-top: 2px; }
 @media (max-width: 380px) { .tc { padding: 20px 14px 16px; } .tc-cell { padding: 6px 4px; } .tc-rowh { font-size: .7rem; } }
+
+/* ---------- optional task price (js/studio-price.js) ---------- */
+.price-badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: .78rem; font-weight: 700; white-space: nowrap; font-family: var(--studio-mono); color: var(--studio-accent); background: rgba(45, 212, 191, .09); border: 1px solid rgba(45, 212, 191, .28); unicode-bidi: isolate; }

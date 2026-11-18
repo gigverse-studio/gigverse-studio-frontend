@@ -82,6 +82,7 @@
       <p class="mb-0" id="rework-deadline-text" style="margin-top:6px; font-weight:700;"></p>
     </div>
     <div id="pending-banner" class="hidden rec-banner"></div>
+    <div id="task-price-line" class="hidden" style="margin-bottom:12px;"></div>
 
     <div class="studio-card hidden" id="instructions-card" style="margin-bottom:16px; border-color:var(--studio-accent);">
       <div class="studio-eyebrow">📋 تعليمات المهمة</div>
@@ -173,6 +174,7 @@
 <script src="js/wav-recorder.js"></script>
 <script src="js/waveform.js"></script>
 <script src="js/studio-queue.js"></script>
+<script src="js/studio-price.js"></script>
 <script src="js/studio-talent.js"></script>
 <script>
   const API_BASE_URL = window.STUDIO_CONFIG.apiBase;
@@ -362,6 +364,7 @@
     ["setup-card", "progress-track", "progress-text", "sentence-card"].forEach(id => $(id).classList.toggle("hidden", !open));
   }
   function setupInstructions() {
+    if (NMPrice.num(session.task_price) !== null) { $("task-price-line").innerHTML = "<span>سعر المهمة</span> " + NMPrice.badge(session.task_price); $("task-price-line").classList.remove("hidden"); }
     const text = session.instructions && String(session.instructions).trim();
     if (!text || localStorage.getItem(ackKey())) { $("instructions-card").classList.add("hidden"); setGate(true); return; }
     $("instructions-text").textContent = text;

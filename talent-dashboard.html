@@ -81,6 +81,7 @@
 </main>
 
 <script src="js/studio-talent.js"></script>
+<script src="js/studio-price.js"></script>
 <script src="js/studio-task-card.js"></script>
 <script>
   const talent = NMTalent.requireLogin();
@@ -182,7 +183,7 @@
           <tbody>
             ${sessions.map(s => `
               <tr>
-                <td>${escapeHtml(s.task_title)}</td>
+                <td>${escapeHtml(s.task_title)}${NMPrice.num(s.task_price) !== null ? `<div style="margin-top:4px;">${NMPrice.badge(s.task_price)}</div>` : ""}</td>
                 <td><span class="studio-code">${s.leader_code}</span></td>
                 <td>${escapeHtml(s.fake_name)}</td>
                 <td>${s.recorded_count} / ${s.sample_count}</td>
@@ -212,7 +213,7 @@
     const byToken = new Map();
     for (const i of active) {
       let g = byToken.get(i.session_token);
-      if (!g) { g = { token: i.session_token, title: i.task_title, numbers: new Set(), deadline: i.rework_deadline, canRework: false }; byToken.set(i.session_token, g); }
+      if (!g) { g = { token: i.session_token, title: i.task_title, price: i.task_price, numbers: new Set(), deadline: i.rework_deadline, canRework: false }; byToken.set(i.session_token, g); }
       (i.recording_numbers || []).forEach(n => g.numbers.add(n));
       if (i.rework_deadline && (!g.deadline || new Date(i.rework_deadline) < new Date(g.deadline))) g.deadline = i.rework_deadline;
       if (i.session_status === "rejected") g.canRework = true;
@@ -223,12 +224,12 @@
     const todo = groups.filter(g => g.canRework).length + qaBack.length;
     setCount("count-feedback", todo);
 
-    const card = (title, bodyHtml, deadline, token) => {
+    const card = (title, bodyHtml, deadline, token, price) => {
       const t = NMTalent.timeLeft(deadline);
       return `
       <div style="border-top:1px solid var(--studio-border); padding:12px 0; display:flex; gap:12px; justify-content:space-between; align-items:center; flex-wrap:wrap;">
         <div>
-          <b>${escapeHtml(title)}</b>
+          <b>${escapeHtml(title)}</b>${NMPrice.num(price) !== null ? ` ${NMPrice.badge(price)}` : ""}
           ${bodyHtml}
           ${deadline ? `<div style="font-weight:700; color:${t.overdue ? "var(--studio-danger)" : "var(--studio-warn)"};">⏰ ${escapeHtml(t.text)}</div>` : ""}
         </div>
@@ -242,14 +243,14 @@
         <div class="studio-card" style="border-color:var(--studio-warn); margin-bottom:16px;">
           <h3 style="margin-top:0;">📩 فيدباك من الشركة على شغلك</h3>
           <p class="studio-hint">الشركة طلبت إعادة تسجيلات معيّنة. سجّلها وسلّمها <b>قبل ما المهلة تخلص</b> — لو خلصت من غير تسليم، الاسم بيتسحب منك ويتاح لحد تاني.</p>
-          ${groups.map(g => card(g.title, `<div style="margin:6px 0;"><b>${g.numbers.size}</b> <span>تسجيل محتاج إعادة</span></div>`, g.deadline, g.canRework ? g.token : null)).join("")}
+          ${groups.map(g => card(g.title, `<div style="margin:6px 0;"><b>${g.numbers.size}</b> <span>تسجيل محتاج إعادة</span></div>`, g.deadline, g.canRework ? g.token : null, g.price)).join("")}
         </div>`);
     }
     if (qaBack.length) {
       parts.push(`
         <div class="studio-card" style="margin-bottom:16px;">
           <h3 style="margin-top:0;">❌ تسليمات محتاجة إعادة (من المراجعة)</h3>
-          ${qaBack.map(s => card(s.task_title, `<div class="studio-hint" style="margin:6px 0; max-width:420px;">⚠️ ${escapeHtml(s.rejection_reason || "")}</div>`, s.rework_deadline, s.session_token)).join("")}
+          ${qaBack.map(s => card(s.task_title, `<div class="studio-hint" style="margin:6px 0; max-width:420px;">⚠️ ${escapeHtml(s.rejection_reason || "")}</div>`, s.rework_deadline, s.session_token, s.task_price)).join("")}
         </div>`);
     }
     if (finals.length || withdrawn.length) {
@@ -257,11 +258,11 @@
         <div class="studio-card" style="margin-bottom:16px;">
           ${finals.map(i => `
             <div style="padding:8px 0; color:var(--studio-danger);">
-              🚫 <b>${escapeHtml(i.task_title)}</b> <span>— الشركة رفضت تسجيلات (${(i.recording_numbers || []).join(", ")}) رفضًا نهائيًا ومفيش إعادة مطلوبة منك.</span>${i.issue_description ? ` <span>السبب: ${escapeHtml(i.issue_description)}</span>` : ""}
+              🚫 <b>${escapeHtml(i.task_title)}</b>${NMPrice.num(i.task_price) !== null ? ` ${NMPrice.badge(i.task_price)}` : ""} <span>— الشركة رفضت تسجيلات (${(i.recording_numbers || []).join(", ")}) رفضًا نهائيًا ومفيش إعادة مطلوبة منك.</span>${i.issue_description ? ` <span>السبب: ${escapeHtml(i.issue_description)}</span>` : ""}
             </div>`).join("")}
           ${withdrawn.map(i => `
             <div style="padding:8px 0; color:var(--studio-danger);">
-              ⛔ <b>${escapeHtml(i.task_title)}</b> — المهلة خلصت واتسحب منك الاسم. لو لسه عايز تشتغل على المهمة دي، ابدأ تسجيل جديد من تبويب "المتاحة".
+              ⛔ <b>${escapeHtml(i.task_title)}</b>${NMPrice.num(i.task_price) !== null ? ` ${NMPrice.badge(i.task_price)}` : ""} — المهلة خلصت واتسحب منك الاسم. لو لسه عايز تشتغل على المهمة دي، ابدأ تسجيل جديد من تبويب "المتاحة".
             </div>`).join("")}
         </div>`);
     }

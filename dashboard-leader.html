@@ -78,6 +78,7 @@
   </div>
 </main>
 
+<script src="js/studio-price.js"></script>
 <script src="js/studio-shared.js"></script>
 <script src="js/studio-share.js"></script>
 <script>
@@ -106,7 +107,7 @@
           const left = (i.status === "reworked" || i.status === "expired") ? null : NMStudio.timeLeft(i.rework_deadline);
           return `<tr>
             <td><span class="studio-code">${esc(i.fake_name)}</span><br>${esc(i.real_name || "")}<br><span style="font-family:var(--studio-mono); font-size:0.8rem; direction:ltr; unicode-bidi:plaintext;">${esc(i.email || "")}</span></td>
-            <td>${esc(i.task_title)}</td>
+            <td>${esc(i.task_title)}${NMPrice.num(i.task_price) !== null ? `<br>${NMPrice.badge(i.task_price)}` : ""}</td>
             <td>${(i.recording_numbers || []).map((n) => `<span class="studio-code" style="margin:0 2px;">${n}</span>`).join("")}</td>
             <td>${esc(i.issue_description || "—")}</td>
             <td><span class="studio-pill ${st[0]}">${st[1]}</span></td>
@@ -141,7 +142,7 @@
         : tl.map((t) => {
             const ts = TASK_STATUS[t.status] || ["", t.status];
             return `<div class="studio-card" style="margin-top:18px;">
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span></div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span>${NMPrice.badge(t.price_usd)}</div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-top:14px;">
                 ${box("لسه بيسجّلوا", t.in_progress)}
                 ${box("اتراجع من خلالنا", t.reviewed_by_us, t.reviewed_by_us_delivered ? `منهم اتسلّم للشركة: ${t.reviewed_by_us_delivered}` : "")}
@@ -170,7 +171,7 @@
                 <td><span class="studio-code">${esc(x.fake_name)}</span><br>${esc(x.real_name || "")}
                   ${x.whatsapp ? `<br><span style="${ltr}">${esc(x.whatsapp)}</span>` : ""}
                   ${x.email ? `<br><span style="${ltr}">${esc(x.email)}</span>` : ""}</td>
-                <td>${esc(x.task_title)}</td>
+                <td>${esc(x.task_title)}${NMPrice.num(x.task_price) !== null ? `<br>${NMPrice.badge(x.task_price)}` : ""}</td>
                 <td><span style="${ltr}">${x.recorded} / ${x.total}</span></td>
                 <td><span class="studio-pill ${st[0]}">${st[1]}</span>${x.accepted_at ? `<div style="margin-top:6px;"><span class="studio-pill status-approved">🏆 مقبول من الشركة</span></div>` : ""}</td>
                 <td>${note}</td>
@@ -180,10 +181,10 @@
       tasks.innerHTML = !tl.length
         ? `<div class="studio-empty"><div class="icon">📋</div><p>الهيد ليدر لسه ما ربطش كودك بأي مهمة.</p></div>`
         : `<div class="studio-table-wrap"><table class="studio-table">
-            <thead><tr><th>المهمة</th><th>الحالة</th><th>المتسجّلين</th><th>بيسجّلوا</th><th>اتراجع من خلالنا</th><th>اتراجع من الشركة</th><th>رفض نهائي</th><th>مرفوضة</th><th>مقبول من الشركة</th></tr></thead>
+            <thead><tr><th>المهمة</th><th>السعر</th><th>الحالة</th><th>المتسجّلين</th><th>بيسجّلوا</th><th>اتراجع من خلالنا</th><th>اتراجع من الشركة</th><th>رفض نهائي</th><th>مرفوضة</th><th>مقبول من الشركة</th></tr></thead>
             <tbody>${tl.map((t) => {
               const ts = TASK_STATUS[t.status] || ["", t.status];
-              return `<tr><td>${esc(t.title)}</td><td><span class="studio-pill ${ts[0]}">${ts[1]}</span></td>
+              return `<tr><td>${esc(t.title)}</td><td>${NMPrice.num(t.price_usd) !== null ? NMPrice.badge(t.price_usd) : "—"}</td><td><span class="studio-pill ${ts[0]}">${ts[1]}</span></td>
                 <td>${t.sessions}</td><td>${t.in_progress}</td><td>${t.reviewed_by_us}</td><td>${t.reviewed_by_company}</td><td>${t.final_rejected}</td><td>${t.rejected}</td><td>${t.accepted || 0}</td></tr>`;
             }).join("")}</tbody></table></div>`;
     } catch (err) {

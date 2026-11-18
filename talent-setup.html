@@ -40,6 +40,7 @@
   <div class="studio-card">
     <div class="studio-eyebrow">بياناتك</div>
     <h1 class="studio-title" id="task-title">جاري التحميل...</h1>
+    <p id="task-price" class="hidden" style="margin:6px 0 0;"></p>
 
     <!-- v10: a password-protected task asks for its password first; everything below stays hidden until it is typed -->
     <div id="gate" class="hidden">
@@ -79,6 +80,7 @@
   </div>
 </main>
 
+<script src="js/studio-price.js"></script>
 <script src="js/studio-talent.js"></script>
 <script>
   const params = new URLSearchParams(location.search);
@@ -179,6 +181,7 @@
       if (mine && mine.limited) task = { ...task, limited: true, slots: mine.slots };
       if (!task.direct && !leaderId) { location.href = "tasks.html"; return; }   // a normal task needs the leader's code
       $("task-title").textContent = task.title;
+      if (NMPrice.num(task.price_usd) !== null) { $("task-price").innerHTML = "<span>السعر</span> " + NMPrice.badge(task.price_usd); $("task-price").classList.remove("hidden"); }
     } catch (_) {
       $("task-title").textContent = "بياناتك";
     }

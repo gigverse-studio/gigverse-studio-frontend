@@ -59,6 +59,8 @@
     if (limited && !allFull) meta += '<span class="tc-meta-item"><span>متبقي</span> ' + num(totalLeft, totalMax) + "</span>";
     else if (!limited && t.quantity) meta += '<span class="tc-meta-item"><span>العدد المتاح</span> <b dir="ltr">' + Math.max(t.quantity - (t.submission_count || 0), 0) + "</b></span>";
 
+    if (window.NMPrice && NMPrice.num(t.price_usd) !== null) meta = '<span class="tc-meta-item">💵 <span>السعر</span> <b dir="ltr">' + NMPrice.fmt(t.price_usd) + "</b></span>" + meta;
+
     if (t.password_protected) meta += '<span class="tc-meta-item">🔒 <span>محمية بكلمة سر</span></span>';
 
     var overall = limited && !allFull ? '<span class="tc-bar tc-total ' + level(p) + '"><i style="width:' + p + '%"></i></span>' : "";
