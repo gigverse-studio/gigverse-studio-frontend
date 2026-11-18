@@ -82,6 +82,7 @@
 
 <script src="js/studio-talent.js"></script>
 <script src="js/studio-price.js"></script>
+<script src="js/studio-deadline.js"></script>
 <script src="js/studio-task-card.js"></script>
 <script>
   const talent = NMTalent.requireLogin();
@@ -122,7 +123,10 @@
     wrap.innerHTML = tasks.map(t => NMTaskCard.html(t, {
       button: `<button class="studio-btn studio-btn-primary studio-btn-block" onclick="openPicker('${t.id}')"><span>ابدأ التسجيل</span></button>`,
     })).join("");
+    if (!wrap.innerHTML.trim()) wrap.innerHTML = `<div class="studio-empty"><div class="icon">🎙️</div><p>مفيش مهام متاحة ليك دلوقتي. لما تنزل مهمة جديدة هتظهر هنا.</p></div>`;
   }
+  // v14: a task whose deadline just ran out was removed by the countdown; reload the list so the count and the empty message are right
+  window.nmOnTaskExpired = () => NMTalent.getTasks().then(renderAvailable).catch(() => {});
 
   async function openPicker(taskId) {
     const overlay = $("picker-overlay");

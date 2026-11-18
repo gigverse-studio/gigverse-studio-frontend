@@ -79,6 +79,7 @@
 </main>
 
 <script src="js/studio-price.js"></script>
+<script src="js/studio-deadline.js"></script>
 <script src="js/studio-shared.js"></script>
 <script src="js/studio-share.js"></script>
 <script>
@@ -142,7 +143,7 @@
         : tl.map((t) => {
             const ts = TASK_STATUS[t.status] || ["", t.status];
             return `<div class="studio-card" style="margin-top:18px;">
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span>${NMPrice.badge(t.price_usd)}${t.skip_qa === true ? `<span class="studio-pill" title="التسليمات بتروح للهيد ليدر على طول من غير مراجعة QA">⏭️ بدون QA</span>` : ""}</div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span>${NMPrice.badge(t.price_usd)}${t.deadline_at ? NMDeadline.pill(t.deadline_at) : ""}${t.skip_qa === true ? `<span class="studio-pill" title="التسليمات بتروح للهيد ليدر على طول من غير مراجعة QA">⏭️ بدون QA</span>` : ""}</div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-top:14px;">
                 ${box("لسه بيسجّلوا", t.in_progress)}
                 ${box("اتراجع من خلالنا", t.reviewed_by_us, t.reviewed_by_us_delivered ? `منهم اتسلّم للشركة: ${t.reviewed_by_us_delivered}` : "")}

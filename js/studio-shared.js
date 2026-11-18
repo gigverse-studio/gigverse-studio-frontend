@@ -168,8 +168,9 @@
     if (duration) extra.duration = duration;
     return apiUploadFile(`/api/studio/headleader/tasks/${taskId}/samples/bulk-audio`, file, extra);
   }
-  function apiPublishTask(taskId) {
-    return apiFetch(`/api/studio/headleader/tasks/${taskId}/publish`, { method: "POST" });
+  function apiPublishTask(taskId, body) {
+    // v14: body = { deadlineAt } (optional); without a body it is exactly the old call
+    return apiFetch(`/api/studio/headleader/tasks/${taskId}/publish`, body ? { method: "POST", body: JSON.stringify(body) } : { method: "POST" });
   }
   function apiCreateQaReviewer(payload) {
     return apiFetch("/api/studio/headleader/qa-reviewers", { method: "POST", body: JSON.stringify(payload) });

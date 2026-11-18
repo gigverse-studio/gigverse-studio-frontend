@@ -72,6 +72,8 @@
         </div>
       </div>
 
+      <div class="studio-field" id="e-deadline-mount"></div>
+
       <div class="studio-field">
         <label class="fb-check"><input type="checkbox" id="e-skip-qa"> من غير مراجعة QA (التسليمات تروح للهيد ليدر على طول)</label>
         <p class="studio-hint" style="margin-top:6px;">لو علّمت عليه، أي تسليم جديد بيتقبل لوحده ويظهر في صفحة التسليم عندك على طول، ومش بيظهر عند حسابات الـ QA. التسليمات اللي اتقبلت قبل كده بتفضل زي ما هي. لو شلت العلامة، التسليمات الجديدة بس هترجع تعدّي على QA. مينفعش تفعّله وفيه تسليمات لسه مستنية مراجعة QA.</p>
@@ -338,6 +340,7 @@
 </main>
 
 <script src="js/studio-price.js"></script>
+<script src="js/studio-deadline.js"></script>
 <script src="js/studio-shared.js"></script>
 <script src="js/studio-hours.js"></script>
 <script>
@@ -394,6 +397,7 @@
     $("e-price-box").classList.toggle("hidden", !hasPrice);
     $("e-ref-audio").checked = task.use_reference_audio !== false;
     $("e-skip-qa").checked = task.skip_qa === true;
+    NMDeadline.fillForm("e", task.deadline_at || null);     // v14
     renderLock();
     $("q-brackets").checked = !!task.use_age_brackets;
     const rs = task.recording_settings || {};
@@ -412,6 +416,8 @@
     $("lock-save").textContent = on ? "تغيير كلمة السر" : "حفظ كلمة السر";
     $("lock-remove").classList.toggle("hidden", !on);
   }
+  // v14: the deadline form (the same one as the publish page)
+  NMDeadline.mountForm("e-deadline-mount", "e");
   // v12: the price box opens with its checkbox
   $("e-has-price").addEventListener("change", (e) => {
     $("e-price-box").classList.toggle("hidden", !e.target.checked);
@@ -461,17 +467,22 @@
     const priceOn = $("e-has-price").checked;
     const priceText = priceOn ? $("e-price").value.trim().replace(/^\$/, "").trim() : "";
     if (priceOn && !NMPrice.valid(priceText)) return showMsg("basic-error", "اكتب سعر المهمة بالدولار (رقم أكبر من صفر، مثال: 5 أو 12.50) أو شيل علامة إضافة السعر.");
+    // v14: deadline. Unticked = no deadline. Saving without touching it sends the same moment back, which changes nothing.
+    const dl = NMDeadline.readForm("e");
+    if (dl.error) return showMsg("basic-error", dl.error);
     await busy(this, "جاري الحفظ...", async () => {
       try {
         task = await NMStudio.apiUpdateTask(taskId, {
           title, instructions: $("e-instructions").value,
           price: priceOn ? priceText : null,
+          deadlineAt: dl.on ? dl.iso : null,
           skipQa: $("e-skip-qa").checked,
           reworkHours, idleHours, useReferenceAudio: $("e-ref-audio").checked,
           difficulty: $("e-difficulty").value, sampleRate: Number($("e-sample-rate").value), bitDepth: Number($("e-bit-depth").value),
           format: $("e-format").value, channels: $("e-channels").value,
         });
         $("task-title-h").textContent = task.title;
+        NMDeadline.fillForm("e", task.deadline_at || null);
         renderSamples();
         flashOk("basic-success", "✓ اتحفظت الأساسيات");
       } catch (err) { showMsg("basic-error", err.message); }

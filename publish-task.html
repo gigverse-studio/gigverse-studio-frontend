@@ -84,6 +84,8 @@
       <p class="studio-hint" style="margin-top:6px;">لو سبته من غير علامة، كل تسليم بيعدّي على مراجع QA الأول ولما يوافق عليه بيروح لصفحة التسليم عندك. لو علّمت عليه، أول ما المتسجّل يسلّم التاسك بيتقبل لوحده ويظهر عندك في صفحة التسليم على طول، ومش بيظهر عند أي حساب QA. تقدر تغيّره بعد كده من تعديل المهمة.</p>
     </div>
 
+    <div class="studio-field" id="t-deadline-mount"></div>
+
     <div class="studio-card" style="background:var(--studio-surface-2); padding:14px; margin-bottom:18px;">
       <h3 style="margin:0 0 10px;">نظام المهمة</h3>
       <div class="studio-grid cols-2">
@@ -315,6 +317,7 @@
 </main>
 
 <script src="js/studio-price.js"></script>
+<script src="js/studio-deadline.js"></script>
 <script src="js/studio-shared.js"></script>
 <script src="js/studio-hours.js"></script>
 <script>
@@ -350,6 +353,8 @@
     document.getElementById("per-leader-toggle").classList.toggle("hidden", direct);   // a direct task has no leaders
     renderLeaderQuotaInputs();
   }
+  // v14: optional deadline (with a countdown on the task card) — drawn by js/studio-deadline.js
+  NMDeadline.mountForm("t-deadline-mount", "t");
   // v12: optional price in USD — the box opens with the checkbox
   document.getElementById("t-has-price").addEventListener("change", (e) => {
     document.getElementById("t-price-box").classList.toggle("hidden", !e.target.checked);
@@ -598,6 +603,13 @@
       errorBox.style.display = "block";
       return;
     }
+    // v14: an optional deadline — checked now so a mistake shows up here; the exact moment is worked out again when the task is published
+    const deadlineCheck = NMDeadline.readForm("t");
+    if (deadlineCheck.error) {
+      errorBox.textContent = deadlineCheck.error;
+      errorBox.style.display = "block";
+      return;
+    }
     // v13: no QA review for this task
     const skipQa = document.getElementById("t-skip-qa").checked;
     // v10: optional task password
@@ -766,6 +778,7 @@
       <p><strong>مهلة إعادة التسجيل:</strong> ${createdTask.rework_hours} ساعة</p>
       <p><strong>مهلة الجلسة الساكتة:</strong> ${createdTask.idle_hours || 8} ساعة</p>
       <p><strong>سعر المهمة:</strong> ${NMPrice.num(createdTask.price_usd) !== null ? `<b dir="ltr">${NMPrice.fmt(createdTask.price_usd)}</b>` : "<span>مفيش سعر</span>"}</p>
+      <p><strong>الديدلاين:</strong> ${(() => { const dl = NMDeadline.readForm("t"); return dl.on && dl.iso ? `<span dir="ltr">${new Date(dl.iso).toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}</span>` : "<span>مفيش ديدلاين</span>"; })()}</p>
       <p><strong>مراجعة QA:</strong> ${createdTask.skip_qa === true ? "<span>من غير مراجعة QA — التسليمات بتروح للهيد ليدر على طول</span>" : "<span>التسليمات بتعدّي على QA الأول</span>"}</p>
       <p><strong>تعليمات للمتسجّل:</strong> ${createdTask.instructions ? "فيه" : "مفيش"}</p>
       <p><strong>كلمة سر المهمة:</strong> ${createdTask.password_protected ? `<span>مفعّلة</span> <b dir="ltr" class="studio-code">${escapeHtml(createdPassword)}</b>` : "<span>مفيش</span>"}</p>
@@ -794,7 +807,10 @@
     const btn = document.getElementById("publish-btn");
     btn.disabled = true; btn.textContent = "جاري النشر...";
     try {
-      await NMStudio.apiPublishTask(createdTask.id);
+      // v14: the deadline counts from THIS moment (a "after 2 days" deadline starts when the task goes live)
+      const dl = NMDeadline.readForm("t");
+      if (dl.error) throw new Error(dl.error);
+      await NMStudio.apiPublishTask(createdTask.id, dl.on && dl.iso ? { deadlineAt: dl.iso } : undefined);
       successBox.textContent = "✅ اتنشرت المهمة بنجاح!";
       successBox.style.display = "block";
       setTimeout(() => location.href = "dashboard-head-leader.html", 1200);

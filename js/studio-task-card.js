@@ -41,6 +41,8 @@
 
   function html(t, opts) {
     opts = opts || {};
+    // v14: a task whose deadline has passed is not an available task (judged with the server's clock) — no card at all
+    if (window.NMDeadline && t.deadline_at && NMDeadline.passed(t.deadline_at, t.server_now)) return "";
     var limited = !!t.limited;
     var slots = t.slots || [];
     var open = limited ? slots.filter(function (s) { return !s.full && s.max > 0; }) : [];
@@ -67,12 +69,13 @@
     var button = opts.button !== undefined ? opts.button : "";
     return '<article class="tc' + (allFull ? " is-full" : "") + '">' +
       '<header class="tc-head"><h3>' + esc(t.title) + "</h3>" + badge + "</header>" +
-      '<div class="tc-meta">' + meta + "</div>" + overall +
+      '<div class="tc-meta">' + meta + "</div>" + (window.NMDeadline ? NMDeadline.timerHtml(t.deadline_at, t.server_now) : "") + overall +
       (limited ? tableHtml(t) : "") +
       '<div class="tc-foot">' + (allFull
         ? '<button type="button" class="studio-btn studio-btn-secondary studio-btn-block" disabled><span>تم الاكتفاء</span></button>'
         : button) + "</div></article>";
   }
 
+  if (window.NMDeadline) NMDeadline.start();      // v14: keeps every countdown on the page ticking
   window.NMTaskCard = { html: html };
 })();
