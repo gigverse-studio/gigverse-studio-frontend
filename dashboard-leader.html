@@ -142,7 +142,7 @@
         : tl.map((t) => {
             const ts = TASK_STATUS[t.status] || ["", t.status];
             return `<div class="studio-card" style="margin-top:18px;">
-              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span>${NMPrice.badge(t.price_usd)}</div>
+              <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;"><h3 style="margin:0;">${esc(t.title)}</h3><span class="studio-pill ${ts[0]}">${ts[1]}</span>${NMPrice.badge(t.price_usd)}${t.skip_qa === true ? `<span class="studio-pill" title="التسليمات بتروح للهيد ليدر على طول من غير مراجعة QA">⏭️ بدون QA</span>` : ""}</div>
               <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-top:14px;">
                 ${box("لسه بيسجّلوا", t.in_progress)}
                 ${box("اتراجع من خلالنا", t.reviewed_by_us, t.reviewed_by_us_delivered ? `منهم اتسلّم للشركة: ${t.reviewed_by_us_delivered}` : "")}
@@ -161,7 +161,7 @@
                 company: ["status-rejected", "↩️ اتراجع من الشركة — محتاج إعادة"],
                 final: ["status-rejected", "🚫 رفض نهائي"],
               };
-              const st = CAT[x.cat] || (x.status === "approved" && x.delivered ? ["status-approved", "📦 اتسلّم للشركة"] : x.status === "approved" ? ["status-approved", "✅ اتراجع من خلالنا"] : (SESSION_STATUS[x.status] || ["", x.status]));
+              const st = CAT[x.cat] || (x.status === "approved" && x.delivered ? ["status-approved", "📦 اتسلّم للشركة"] : x.status === "approved" ? (x.task_skip_qa ? ["status-approved", "✅ اتسلّم — راح للهيد ليدر"] : ["status-approved", "✅ اتراجع من خلالنا"]) : (SESSION_STATUS[x.status] || ["", x.status]));
               const showNote = x.status === "rejected" || x.cat === "company";
               const left = showNote && x.rework_deadline ? NMStudio.timeLeft(x.rework_deadline) : null;
               const note = showNote
@@ -184,7 +184,7 @@
             <thead><tr><th>المهمة</th><th>السعر</th><th>الحالة</th><th>المتسجّلين</th><th>بيسجّلوا</th><th>اتراجع من خلالنا</th><th>اتراجع من الشركة</th><th>رفض نهائي</th><th>مرفوضة</th><th>مقبول من الشركة</th></tr></thead>
             <tbody>${tl.map((t) => {
               const ts = TASK_STATUS[t.status] || ["", t.status];
-              return `<tr><td>${esc(t.title)}</td><td>${NMPrice.num(t.price_usd) !== null ? NMPrice.badge(t.price_usd) : "—"}</td><td><span class="studio-pill ${ts[0]}">${ts[1]}</span></td>
+              return `<tr><td>${esc(t.title)}${t.skip_qa === true ? `<br><span class="studio-pill" title="التسليمات بتروح للهيد ليدر على طول من غير مراجعة QA">⏭️ بدون QA</span>` : ""}</td><td>${NMPrice.num(t.price_usd) !== null ? NMPrice.badge(t.price_usd) : "—"}</td><td><span class="studio-pill ${ts[0]}">${ts[1]}</span></td>
                 <td>${t.sessions}</td><td>${t.in_progress}</td><td>${t.reviewed_by_us}</td><td>${t.reviewed_by_company}</td><td>${t.final_rejected}</td><td>${t.rejected}</td><td>${t.accepted || 0}</td></tr>`;
             }).join("")}</tbody></table></div>`;
     } catch (err) {

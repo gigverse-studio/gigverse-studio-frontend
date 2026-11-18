@@ -177,6 +177,7 @@
       <span dir="ltr" class="${s.full ? "studio-error" : ""}" style="${s.full ? "display:inline; background:none; border:none; padding:0;" : ""}">${s.used} / ${s.max}</span></div>`).join("");
   }
   function qaCell(t) {
+    if (t.skip_qa === true) return `<span class="studio-pill status-approved" title="التسليمات بتروح لصفحة التسليم على طول">⏭️ بدون QA</span>`;   // v13
     const list = t.qa_summary || [];
     return list.length ? list.map(q => `<div>${escapeHtml(q.name)} <span dir="ltr" class="studio-hint">(${q.n})</span></div>`).join("") : `<span class="studio-hint">—</span>`;
   }

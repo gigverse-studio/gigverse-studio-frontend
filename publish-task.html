@@ -79,6 +79,11 @@
       </div>
     </div>
 
+    <div class="studio-field">
+      <label class="fb-check"><input type="checkbox" id="t-skip-qa"> من غير مراجعة QA (التسليمات تروح للهيد ليدر على طول)</label>
+      <p class="studio-hint" style="margin-top:6px;">لو سبته من غير علامة، كل تسليم بيعدّي على مراجع QA الأول ولما يوافق عليه بيروح لصفحة التسليم عندك. لو علّمت عليه، أول ما المتسجّل يسلّم التاسك بيتقبل لوحده ويظهر عندك في صفحة التسليم على طول، ومش بيظهر عند أي حساب QA. تقدر تغيّره بعد كده من تعديل المهمة.</p>
+    </div>
+
     <div class="studio-card" style="background:var(--studio-surface-2); padding:14px; margin-bottom:18px;">
       <h3 style="margin:0 0 10px;">نظام المهمة</h3>
       <div class="studio-grid cols-2">
@@ -593,6 +598,8 @@
       errorBox.style.display = "block";
       return;
     }
+    // v13: no QA review for this task
+    const skipQa = document.getElementById("t-skip-qa").checked;
     // v10: optional task password
     const lockOn = document.getElementById("t-lock").checked;
     const accessPassword = lockOn ? document.getElementById("t-password").value.trim() : "";
@@ -612,6 +619,7 @@
         useAgeBrackets, useReferenceAudio, scriptMode, identityMode, direct,
         ...(accessPassword ? { accessPassword } : {}),
         ...(priceOn ? { price: priceText } : {}),
+        ...(skipQa ? { skipQa: true } : {}),
         quotas: collectQuotas(),
         ...(leaderQuotas ? { leaderQuotas } : {}),
         sampleRate: document.getElementById("t-sample-rate").value,
@@ -758,6 +766,7 @@
       <p><strong>مهلة إعادة التسجيل:</strong> ${createdTask.rework_hours} ساعة</p>
       <p><strong>مهلة الجلسة الساكتة:</strong> ${createdTask.idle_hours || 8} ساعة</p>
       <p><strong>سعر المهمة:</strong> ${NMPrice.num(createdTask.price_usd) !== null ? `<b dir="ltr">${NMPrice.fmt(createdTask.price_usd)}</b>` : "<span>مفيش سعر</span>"}</p>
+      <p><strong>مراجعة QA:</strong> ${createdTask.skip_qa === true ? "<span>من غير مراجعة QA — التسليمات بتروح للهيد ليدر على طول</span>" : "<span>التسليمات بتعدّي على QA الأول</span>"}</p>
       <p><strong>تعليمات للمتسجّل:</strong> ${createdTask.instructions ? "فيه" : "مفيش"}</p>
       <p><strong>كلمة سر المهمة:</strong> ${createdTask.password_protected ? `<span>مفعّلة</span> <b dir="ltr" class="studio-code">${escapeHtml(createdPassword)}</b>` : "<span>مفيش</span>"}</p>
       <p class="mb-0"><strong>الإعدادات:</strong> ${createdTask.recording_settings.sampleRate}Hz, ${createdTask.recording_settings.bitDepth}bit, ${createdTask.recording_settings.format.toUpperCase()}, ${createdTask.recording_settings.channels}</p>

@@ -165,7 +165,8 @@
   <div id="done-box" class="hidden studio-card text-center">
     <div style="font-size:2.6rem;">🎉</div>
     <h2 class="studio-title">تم التسليم بنجاح!</h2>
-    <p class="studio-subtitle">شكرًا على وقتك. التسجيلات بتاعتك راحت للمراجعة دلوقتي.</p>
+    <p class="studio-subtitle" id="done-text-qa">شكرًا على وقتك. التسجيلات بتاعتك راحت للمراجعة دلوقتي.</p>
+    <p class="studio-subtitle hidden" id="done-text-direct">شكرًا على وقتك. التسجيلات بتاعتك اتسلّمت.</p>
   </div>
 
 </main>
@@ -779,7 +780,9 @@
     const btn = $("submit-btn");
     btn.disabled = true; btn.textContent = "جاري التجهيز والتسليم...";
     try {
-      await NMTalent.submitSession(token);
+      const submitted = await NMTalent.submitSession(token);
+      // v13: a task with no QA review is approved the moment it is submitted — there is no "went to review" to tell him about
+      if (submitted && submitted.autoApproved) { $("done-text-qa").classList.add("hidden"); $("done-text-direct").classList.remove("hidden"); }
       if (rec) rec.close();
       $("recorder-box").classList.add("hidden");
       $("done-box").classList.remove("hidden");

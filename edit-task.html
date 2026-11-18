@@ -73,6 +73,11 @@
       </div>
 
       <div class="studio-field">
+        <label class="fb-check"><input type="checkbox" id="e-skip-qa"> من غير مراجعة QA (التسليمات تروح للهيد ليدر على طول)</label>
+        <p class="studio-hint" style="margin-top:6px;">لو علّمت عليه، أي تسليم جديد بيتقبل لوحده ويظهر في صفحة التسليم عندك على طول، ومش بيظهر عند حسابات الـ QA. التسليمات اللي اتقبلت قبل كده بتفضل زي ما هي. لو شلت العلامة، التسليمات الجديدة بس هترجع تعدّي على QA. مينفعش تفعّله وفيه تسليمات لسه مستنية مراجعة QA.</p>
+      </div>
+
+      <div class="studio-field">
         <label for="e-idle">مهلة الجلسة الساكتة</label>
         <select id="e-idle"></select>
         <p class="studio-hint" style="margin-top:6px;">بعد المدة دي من غير ما المتسجّل يرفع أي تسجيل، الجلسة بتتسحب والاسم والمكان بيرجعوا متاحين، والتسجيلات اللي رفعها بتتمسح. التغيير بيسري على الجلسات الشغالة كمان.</p>
@@ -388,6 +393,7 @@
     $("e-price").value = hasPrice ? String(Number(task.price_usd)) : "";
     $("e-price-box").classList.toggle("hidden", !hasPrice);
     $("e-ref-audio").checked = task.use_reference_audio !== false;
+    $("e-skip-qa").checked = task.skip_qa === true;
     renderLock();
     $("q-brackets").checked = !!task.use_age_brackets;
     const rs = task.recording_settings || {};
@@ -460,6 +466,7 @@
         task = await NMStudio.apiUpdateTask(taskId, {
           title, instructions: $("e-instructions").value,
           price: priceOn ? priceText : null,
+          skipQa: $("e-skip-qa").checked,
           reworkHours, idleHours, useReferenceAudio: $("e-ref-audio").checked,
           difficulty: $("e-difficulty").value, sampleRate: Number($("e-sample-rate").value), bitDepth: Number($("e-bit-depth").value),
           format: $("e-format").value, channels: $("e-channels").value,

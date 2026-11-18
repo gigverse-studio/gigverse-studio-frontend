@@ -65,7 +65,7 @@
 <main class="studio-shell wide">
   <div class="studio-eyebrow">لوحة الهيد ليدر</div>
   <h1 class="studio-title">التسليم للشركة</h1>
-  <p class="studio-subtitle">التسليمات اللي QA وافق عليها، متقسّمة حسب المهمة والنوع، وتحتها كل مراجع ويوم. دوس "تجميع" عشان كل ملفات الـ ZIP تتجمع في ملف واحد كبير وتنتقل لخانة "تم التسليم".</p>
+  <p class="studio-subtitle">التسليمات اللي QA وافق عليها (أو اللي اتسلّمت من مهمة من غير QA)، متقسّمة حسب المهمة والنوع، وتحتها كل مراجع ويوم. دوس "تجميع" عشان كل ملفات الـ ZIP تتجمع في ملف واحد كبير وتنتقل لخانة "تم التسليم".</p>
 
   <div class="studio-card dl-storage" id="storage-card"><div class="studio-hint">جاري قراءة مساحة درايف...</div></div>
 
@@ -128,13 +128,14 @@
   let tree = [];
 
   function groupHtml(g, ti, gender, gi) {
+    const skipQa = !!(tree[ti] && tree[ti].skipQa);      // v13: the task has no QA review, so there is no reviewer to show
     const when = `${fmtDay(g.day)}${g.firstAt ? ` · ${fmtTime(g.firstAt)}${g.lastAt !== g.firstAt ? " ← " + fmtTime(g.lastAt) : ""}` : ""}`;
     return `
       <div class="dl-group" id="grp-${ti}-${gender}-${gi}">
         <div class="dl-group-head">
           <div>
             <div class="dl-when">📅 ${esc(when)}</div>
-            <div class="dl-meta">مراجع الـ QA: <b>${esc(g.qaName || "غير معروف")}</b> · ${g.sessions.length} تاسك</div>
+            <div class="dl-meta">${skipQa ? `<span>بدون مراجعة QA</span>` : `<span>مراجع الـ QA:</span> <b>${esc(g.qaName || "غير معروف")}</b>`} · ${g.sessions.length} تاسك</div>
           </div>
           <div class="dl-actions">
             <button class="studio-btn studio-btn-primary" data-act="collect" data-ref="${ti}|${gender}|${gi}">📦 تجميع (Collect)</button>
@@ -167,7 +168,7 @@
     const total = tree.reduce((n, t) => n + t.total, 0);
     $("count-pending").textContent = total ? `(${total})` : "";
     if (!tree.length) {
-      wrap.innerHTML = `<div class="studio-card"><div class="studio-empty"><div class="icon">📭</div><p>مفيش تسليمات معتمدة مستنية. أول ما QA يوافق على تسليمات هتظهر هنا.</p></div></div>`;
+      wrap.innerHTML = `<div class="studio-card"><div class="studio-empty"><div class="icon">📭</div><p>مفيش تسليمات معتمدة مستنية. أول ما QA يوافق على تسليمات (أو متسجّل يسلّم مهمة من غير QA) هتظهر هنا.</p></div></div>`;
       return;
     }
     wrap.innerHTML = tree.map((task, ti) => `
@@ -183,7 +184,7 @@
   }
 
   const groupOf = (ref) => { const [ti, gender, gi] = ref.split("|"); return { task: tree[ti], gender, group: tree[ti].genders[gender][gi] }; };
-  const baseName = (task, gender, g) => `${task.title} - ${GENDER[gender].file} - ${g.qaName || "QA"} - ${g.day}`.replace(/[\\/:*?"<>|]/g, "-");
+  const baseName = (task, gender, g) => `${task.title} - ${GENDER[gender].file} - ${g.qaName || (task.skipQa ? "No QA" : "QA")} - ${g.day}`.replace(/[\\/:*?"<>|]/g, "-");
 
   $("pending-wrap").addEventListener("click", async (e) => {
     const btn = e.target.closest("button[data-act]");
@@ -238,7 +239,7 @@
                 <tr>
                   <td>${b.status === "collecting" ? `<span class="studio-pill status-pending">⏳ قيد التجميع</span>` : esc(fmtDateTime(b.delivered_at))}</td>
                   <td>${GENDER[b.gender].label}</td>
-                  <td>${esc(b.qa_name || "غير معروف")}</td>
+                  <td>${b.qa_name ? esc(b.qa_name) : b.skip_qa ? `<span>بدون QA</span>` : esc("غير معروف")}</td>
                   <td>${esc(fmtDay(b.group_day))}</td>
                   <td>${esc(b.session_count)}</td>
                   <td>${esc(fmtSize(b.zip_size_bytes))}</td>
@@ -250,7 +251,7 @@
                            ${b.downloaded_at
                              ? `<span class="studio-pill status-approved" title="${esc(fmtDateTime(b.downloaded_at))}">✅ اتنزّل</span> <button class="studio-btn studio-btn-secondary" data-undo="${esc(b.id)}" title="تراجع">↩️</button>`
                              : `<button class="studio-btn studio-btn-primary" data-dl="${esc(b.id)}">⬇️ نزّلت الملف</button>`}`}
-                      <button class="studio-btn studio-btn-secondary" data-batch="${esc(b.id)}" data-name="${esc(`Sheet - ${b.task_title} - ${GENDER[b.gender].file} - ${b.qa_name || "QA"} - ${b.group_day}`.replace(/[\\/:*?"<>|]/g, "-"))}">📊 شيت</button>
+                      <button class="studio-btn studio-btn-secondary" data-batch="${esc(b.id)}" data-name="${esc(`Sheet - ${b.task_title} - ${GENDER[b.gender].file} - ${b.qa_name || (b.skip_qa ? "No QA" : "QA")} - ${b.group_day}`.replace(/[\\/:*?"<>|]/g, "-"))}">📊 شيت</button>
                     </div>` : ""}</td>
                 </tr>`).join("")}
             </tbody>
