@@ -72,9 +72,9 @@
 
   <!-- leader-code picker popup -->
   <div id="picker-overlay" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,0.6); display:flex; align-items:center; justify-content:center; padding:20px; z-index:50;">
-    <div class="studio-card" style="max-width:420px; width:100%;">
+    <div class="studio-card" style="max-width:420px; width:100%; max-height:calc(100vh - 40px); max-height:calc(100dvh - 40px); display:flex; flex-direction:column;">
       <h3 style="margin-top:0;">اختار كود الليدر بتاعك</h3>
-      <div id="picker-leaders"></div>
+      <div id="picker-leaders" style="flex:1 1 auto; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;"></div>
       <button class="studio-btn studio-btn-secondary studio-btn-block" style="margin-top:14px;" id="picker-close">إلغاء</button>
     </div>
   </div>
