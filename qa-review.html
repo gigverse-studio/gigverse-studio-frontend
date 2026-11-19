@@ -96,6 +96,7 @@
         <div style="flex:2; min-width:160px;">
           <div>${escapeHtml(s.sentence_name)}</div>
           <audio controls preload="none" id="audio-${s.id}"></audio>
+          <button type="button" class="studio-btn studio-btn-secondary hidden" id="retry-${s.id}" style="margin-top:6px;" onclick="loadClip('${s.id}')">🔄 إعادة تحميل التسجيل</button>
         </div>
         <div class="qa-verdict-btns">
           <button type="button" class="qa-verdict-btn approve" onclick="setVerdict('${s.id}', 'approved')">✅ قبول</button>
@@ -104,15 +105,42 @@
         <textarea class="studio-field qa-reason-input" id="reason-${s.id}" placeholder="سبب الرفض..." rows="2"></textarea>
       </div>`).join("");
 
-    // lazy-load each clip's audio as a blob (the endpoint needs auth, which
-    // a plain <audio src> can't send)
-    samples.forEach(async (s) => {
-      try {
-        const url = await NMStudio.qaFetchSampleAudioUrl(s.id);
-        const el = document.getElementById(`audio-${s.id}`);
-        if (el) el.src = url;
-      } catch (_) { /* leave the player empty — they can still make a call without it, though unlikely needed */ }
-    });
+    // Load the clips as blobs (the endpoint needs auth, which a plain <audio src> can't send) — but only a FEW AT A TIME.
+    // Asking for all of them together overloads the server, and then clips fail and every page says "server busy".
+    samples.forEach((s) => clipQueue.push(s.id));
+    pumpClips();
+  }
+
+  const CLIP_PARALLEL = 3;
+  const clipQueue = [];
+  let clipsRunning = 0;
+
+  function pumpClips() {
+    while (clipsRunning < CLIP_PARALLEL && clipQueue.length) {
+      const id = clipQueue.shift();
+      clipsRunning++;
+      loadClipNow(id).finally(() => { clipsRunning--; pumpClips(); });
+    }
+  }
+
+  async function loadClipNow(id) {
+    const btn = document.getElementById(`retry-${id}`);
+    const el = document.getElementById(`audio-${id}`);
+    if (btn) btn.classList.add("hidden");
+    try {
+      const url = await NMStudio.qaFetchSampleAudioUrl(id);
+      if (el) { el.src = url; el.load(); }
+    } catch (_) {
+      if (btn) btn.classList.remove("hidden");   // never leave a dead player with no way out: show a retry button
+    }
+  }
+
+  // the "retry" button of one clip (goes to the back of the same queue, so retries cannot flood the server either)
+  function loadClip(id) {
+    const btn = document.getElementById(`retry-${id}`);
+    if (btn) btn.classList.add("hidden");
+    clipQueue.push(id);
+    pumpClips();
   }
 
   function setVerdict(sessionSampleId, verdict) {
@@ -159,6 +187,7 @@
   }
 
   window.setVerdict = setVerdict;
+  window.loadClip = loadClip;
   load();
 </script>
 </body>

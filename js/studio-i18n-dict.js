@@ -21,6 +21,7 @@ window.STUDIO_I18N = { en: {
   "✅ اكتملت": "✅ Completed",
   "الجلسة انتهت. سجّل دخول تاني.": "Your session has expired. Please log in again.",
   "السيرفر مشغول لحظة. حاول تاني.": "The server is busy for a moment. Please try again.",
+  "🔄 إعادة تحميل التسجيل": "🔄 Reload recording",
   "💰 إجمالي الأرباح": "💰 Total earnings",
   "💰 إجمالي أرباح فريقك": "💰 Your team's total earnings",
   "تفاصيل كل تاسك": "Details per task",

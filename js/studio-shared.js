@@ -45,14 +45,23 @@
     const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
     const token = authToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
-    let res;
-    try {
-      res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
-    } catch (err) {
-      throw new Error("تعذر الاتصال بالسيرفر. اتأكد من اتصالك بالنت وحاول تاني.");
+    let res, data = null;
+    // The server answers 503 "temporarily_unavailable" BEFORE it runs anything (its database was busy for a moment),
+    // so repeating the request is always safe — even a POST. Try again quietly (twice) before showing "server busy".
+    for (let attempt = 0; ; attempt++) {
+      try {
+        res = await fetch(`${API_BASE_URL}${path}`, { ...options, headers });
+      } catch (err) {
+        throw new Error("تعذر الاتصال بالسيرفر. اتأكد من اتصالك بالنت وحاول تاني.");
+      }
+      data = null;
+      try { data = await res.json(); } catch (_) {}
+      if (res.status === 503 && data && data.code === "temporarily_unavailable" && attempt < 2) {
+        await new Promise((r) => setTimeout(r, 900 * (attempt + 1)));
+        continue;
+      }
+      break;
     }
-    let data = null;
-    try { data = await res.json(); } catch (_) {}
     if (!res.ok) {
       sessionExpired(res, data);
       const e = new Error((data && data.error) || "حصل خطأ غير متوقع."); e.status = res.status; throw e;
@@ -223,14 +232,27 @@
   // A plain <audio src="..."> can't send an Authorization header, and this
   // endpoint needs one (it's QA-only) — so we fetch it ourselves with the
   // token attached and hand back a blob: URL the <audio> tag CAN use.
+  // A busy server / a dropped connection is retried automatically (up to 3 times, a little longer each time).
+  // 401/403/404 are final answers — retrying would not change them.
   async function qaFetchSampleAudioUrl(sessionSampleId) {
     const token = authToken();
-    const res = await safeFetch(`${API_BASE_URL}/api/studio/qa/samples/${sessionSampleId}/audio`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (!res.ok) throw new Error("تعذر تحميل التسجيل الصوتي");
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
+    let lastErr = new Error("تعذر تحميل التسجيل الصوتي");
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt) await new Promise((r) => setTimeout(r, 700 * attempt));
+      let res;
+      try {
+        res = await fetch(`${API_BASE_URL}/api/studio/qa/samples/${sessionSampleId}/audio`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+      } catch (_) { continue; }                       // network hiccup -> try again
+      if (res.ok) {
+        const blob = await res.blob();
+        if (blob.size > 0) return URL.createObjectURL(blob);
+        continue;                                      // empty answer -> try again
+      }
+      if (res.status === 401 || res.status === 403 || res.status === 404) break;
+    }
+    throw lastErr;
   }
 
 
