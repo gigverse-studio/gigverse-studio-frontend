@@ -100,6 +100,7 @@
   }
 
   function getMySessions() { return apiFetch("/api/studio/talent/me/sessions"); }
+  function getMyEarnings() { return apiFetch("/api/studio/talent/me/earnings"); }
   function getMyFeedback() { return apiFetch("/api/studio/feedback/mine"); }
   // "باقي 7 ساعات و 20 دقيقة" / "المهلة خلصت من 3 ساعات"
   function timeLeft(iso) {
@@ -156,6 +157,6 @@
     createSession, getSession, uploadSampleAudio, submitSession,
     saveSessionToken, loadSessionToken,
     authToken, currentTalent, saveSession, logout, requireLogin,
-    signup, login, getMe, getMySessions, getMyFeedback, timeLeft,
+    signup, login, getMe, getMySessions, getMyFeedback, getMyEarnings, timeLeft,
   };
 })();

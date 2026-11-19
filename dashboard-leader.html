@@ -56,6 +56,8 @@
     <p class="studio-hint" style="margin:0; max-width:420px;">الأرقام تحت متفصّلة لكل تاسك لوحده.</p>
   </div>
 
+  <div id="earnings-wrap"></div>
+
   <div id="task-boxes"><p class="studio-hint" style="margin-top:18px;">جاري التحميل...</p></div>
 
 
@@ -136,6 +138,8 @@
     try {
       const { stats, tasks: tl, sessions } = await NMStudio.apiLeaderOverview();
       setStat("stat-open", stats.openTasks);
+      // v15: total earning of the whole team (display only; a failure here never touches the rest of the page)
+      NMStudio.apiLeaderEarnings().then((e) => { document.getElementById("earnings-wrap").innerHTML = NMPrice.earningsCard(e, { title: "💰 إجمالي أرباح فريقك" }); }).catch(() => {});
       // one block of boxes PER TASK (not one total for everything)
       const box = (label, v, sub) => `<div class="studio-card"><div class="studio-eyebrow">${label}</div><div class="studio-title" style="font-size:1.8rem;">${v}</div>${sub ? `<div class="studio-hint" style="margin-top:4px;">${sub}</div>` : ""}</div>`;
       document.getElementById("task-boxes").innerHTML = !tl.length

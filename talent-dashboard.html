@@ -60,7 +60,8 @@
 
   <!-- 2) the talent's own tasks -->
   <section id="tab-mine" class="hidden">
-    <div class="studio-card" id="sessions-wrap">
+    <div id="earnings-wrap"></div>
+    <div class="studio-card" id="sessions-wrap" style="margin-top:18px;">
       <p class="studio-hint">جاري التحميل...</p>
     </div>
   </section>
@@ -286,6 +287,9 @@
     const sessions = sRes.status === "fulfilled" ? sRes.value : [];
     if (sRes.status === "fulfilled") renderMine(sessions);
     else $("sessions-wrap").innerHTML = `<div class="studio-empty"><p>${escapeHtml(sRes.reason.message)}</p></div>`;
+
+    // v15: total earning (display only; a failure here never touches the rest of the page)
+    NMTalent.getMyEarnings().then((e) => { $("earnings-wrap").innerHTML = NMPrice.earningsCard(e); }).catch(() => {});
 
     const items = fRes.status === "fulfilled" ? (fRes.value.items || []) : [];
     const todo = renderFeedback(sessions, items);
