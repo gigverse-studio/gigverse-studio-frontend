@@ -29,6 +29,26 @@
 <script src="js/config.js"></script>
 <script src="js/studio-i18n-dict.js"></script>
 <script src="js/studio-i18n.js"></script>
+<style>
+  .qa-toolbar { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:18px; }
+  .qa-toolbar input[type=search] { flex:1; min-width:180px; background:var(--studio-surface-2); border:1px solid var(--studio-border); color:var(--studio-text); border-radius:10px; padding:10px 13px; font-family:inherit; font-size:0.92rem; }
+  .qa-summary { color:var(--studio-text-muted); font-size:0.88rem; margin-top:12px; }
+  .qa-box { padding:0; margin-top:14px; overflow:hidden; }
+  .qa-box-head { display:flex; align-items:center; gap:12px; flex-wrap:wrap; width:100%; background:transparent; border:0; color:inherit; font-family:inherit; text-align:start; padding:16px 20px; cursor:pointer; }
+  .qa-box-head:hover { background:var(--studio-surface-2); }
+  .qa-box-title { font-weight:800; font-size:1.05rem; flex:1; min-width:160px; }
+  .qa-box-meta { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .qa-chevron { color:var(--studio-text-muted); transition:transform .15s; }
+  html[dir=ltr] .qa-chevron { transform:rotate(180deg); }   /* closed: points forward (right in English, left in Arabic) */
+  .qa-box.open .qa-chevron { transform:rotate(-90deg); }      /* open: points down in both */
+  .qa-box-body { display:none; border-top:1px solid var(--studio-border); padding:14px 20px 18px; }
+  .qa-box.open .qa-box-body { display:block; }
+  .qa-chips { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+  .qa-chip { cursor:pointer; font-family:inherit; }
+  .qa-chip.active { color:var(--studio-accent); border-color:var(--studio-accent); background:var(--studio-accent-dim); }
+  .qa-box-actions { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+  .qa-resub { color:var(--studio-warn); border-color:var(--studio-warn); }
+</style>
 </head>
 <body class="studio">
 
@@ -46,8 +66,15 @@
 
   <div id="share-links" style="margin-top:18px;"></div>
 
-  <div class="studio-card" style="margin-top:18px;" id="pending-wrap">
-    <p class="studio-hint">جاري التحميل...</p>
+  <div class="qa-toolbar" id="qa-toolbar" style="display:none;">
+    <input type="search" id="qa-search" placeholder="ابحث باسم المهمة..." autocomplete="off">
+    <button type="button" class="studio-btn studio-btn-secondary" id="qa-open-all" style="padding:8px 14px;">فتح الكل</button>
+    <button type="button" class="studio-btn studio-btn-secondary" id="qa-close-all" style="padding:8px 14px;">قفل الكل</button>
+  </div>
+  <div class="qa-summary" id="qa-summary"></div>
+
+  <div id="pending-wrap" style="margin-top:6px;">
+    <div class="studio-card"><p class="studio-hint">جاري التحميل...</p></div>
   </div>
 
   <!-- quick "reject fully" reason prompt -->
@@ -82,26 +109,120 @@
   const GENDER_LABELS = { male: "ذكر", female: "أنثى" };
   let rejectTargetId = null;
 
+  // ---- boxes: ONE BOX PER TASK NAME (every submission of every task with that name, from any leader) ----
+  const state = { boxes: [], open: loadOpen(), filter: {}, q: "" };
+  let hadSavedOpen = state.open.size > 0;
+
+  function loadOpen() { try { return new Set(JSON.parse(sessionStorage.getItem("qa_open_boxes") || "[]")); } catch (_) { return new Set(); } }
+  function saveOpen() { try { sessionStorage.setItem("qa_open_boxes", JSON.stringify(Array.from(state.open))); } catch (_) {} }
+  const norm = (t) => String(t || "").normalize("NFKC").replace(/\s+/g, " ").trim().toLowerCase();
+
+  // minutes -> hours -> days; every text sits in its own <span> so the English switch can translate it
+  function waitHtml(iso) {
+    const ms = Date.now() - new Date(iso).getTime();
+    if (!isFinite(ms)) return "";
+    const m = Math.max(Math.floor(ms / 60000), 1);
+    if (m < 60) return `<span>منتظر من ${m} دقيقة</span>`;
+    const h = Math.floor(m / 60);
+    if (h < 48) return `<span>منتظر من ${h} ساعة</span>`;
+    return `<span>منتظر من ${Math.floor(h / 24)} يوم</span>`;
+  }
+
+  async function fetchBoxes() {
+    try {
+      const d = await NMStudio.apiGetPendingBoxes();
+      return d.boxes || [];
+    } catch (err) {
+      if (err.status !== 404) throw err;
+      // the server has not been updated yet: build the same boxes here from the old flat list
+      const flat = await NMStudio.apiGetPendingReviews();
+      const map = new Map();
+      for (const r of flat) {
+        const key = norm(r.task_title) || "__untitled__";
+        if (!map.has(key)) map.set(key, { key, title: String(r.task_title || "").replace(/\s+/g, " ").trim() || "—", taskCount: null, sessions: [] });
+        map.get(key).sessions.push({ ...r, resubmitted: false });
+      }
+      const boxes = Array.from(map.values());
+      boxes.forEach((b) => {
+        b.pending = b.sessions.length;
+        b.leaders = Array.from(new Set(b.sessions.map((x) => x.leader_code))).sort();
+        b.oldest = b.sessions[0] && b.sessions[0].updated_at;
+      });
+      return boxes;
+    }
+  }
+
   async function loadPending() {
     const wrap = document.getElementById("pending-wrap");
     try {
-      const sessions = await NMStudio.apiGetPendingReviews();
-      if (!sessions.length) {
-        wrap.innerHTML = `<div class="studio-empty"><div class="icon">✅</div><p>مفيش تسليمات منتظرة المراجعة دلوقتي.</p></div>`;
-        return;
-      }
-      wrap.innerHTML = `
+      state.boxes = await fetchBoxes();
+      if (!hadSavedOpen && state.boxes.length) state.open.add(state.boxes[0].key);   // first visit: the box that waited longest is open
+      hadSavedOpen = true;
+      render();
+    } catch (err) {
+      wrap.innerHTML = `<div class="studio-empty"><p>${escapeHtml(err.message)}</p></div>`;
+    }
+  }
+
+  function render() {
+    const wrap = document.getElementById("pending-wrap");
+    const total = state.boxes.reduce((n, b) => n + b.sessions.length, 0);
+    document.getElementById("qa-toolbar").style.display = state.boxes.length ? "flex" : "none";
+    document.getElementById("qa-summary").innerHTML = state.boxes.length
+      ? `<span>${total} تسليم منتظر في ${state.boxes.length} مهمة</span>` : "";
+    if (!state.boxes.length) {
+      wrap.innerHTML = `<div class="studio-card"><div class="studio-empty"><div class="icon">✅</div><p>مفيش تسليمات منتظرة المراجعة دلوقتي.</p></div></div>`;
+      return;
+    }
+    const q = norm(state.q);
+    const shown = state.boxes.filter((b) => !q || norm(b.title).includes(q));
+    if (!shown.length) {
+      wrap.innerHTML = `<div class="studio-card"><div class="studio-empty"><p>مفيش نتايج بالاسم ده.</p></div></div>`;
+      return;
+    }
+    wrap.innerHTML = shown.map((b) => boxHtml(b, state.boxes.indexOf(b))).join("");
+  }
+
+  function boxHtml(b, i) {
+    const open = state.open.has(b.key);
+    const f = state.filter[b.key] || "";
+    const sessions = b.sessions.filter((s) => !f || s.leader_code === f);
+    const multiLeader = (b.leaders || []).length > 1;
+    const oldest = b.sessions[0] ? waitHtml(b.sessions[0].updated_at || b.sessions[0].created_at) : "";
+    const head = `
+      <button type="button" class="qa-box-head" data-act="toggle" data-bi="${i}">
+        <span class="qa-chevron">◀</span>
+        <span class="qa-box-title">${escapeHtml(b.title)}</span>
+        <span class="qa-box-meta">
+          <span class="studio-pill status-pending">${b.sessions.length} تسليم</span>
+          ${b.taskCount > 1 ? `<span class="studio-pill">${b.taskCount} مهام بنفس الاسم</span>` : ""}
+          ${(b.leaders || []).map((c) => `<span class="studio-code">${escapeHtml(c)}</span>`).join("")}
+          <span class="studio-hint" style="margin:0;">${oldest}</span>
+        </span>
+      </button>`;
+    if (!open) return `<div class="studio-card qa-box" id="box-${i}">${head}</div>`;
+
+    const chips = multiLeader ? `
+      <div class="qa-chips">
+        <button type="button" class="studio-pill qa-chip ${f ? "" : "active"}" data-act="leader" data-bi="${i}" data-leader=""><span>الكل</span></button>
+        ${b.leaders.map((c) => `<button type="button" class="studio-pill qa-chip ${f === c ? "active" : ""}" data-act="leader" data-bi="${i}" data-leader="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}
+      </div>` : "";
+    const first = sessions[0];
+    const body = `
+      <div class="qa-box-body">
+        ${chips}
+        ${first ? `<div class="qa-box-actions"><a class="studio-btn studio-btn-primary" style="padding:7px 14px; font-size:0.82rem;" href="qa-review.html?session=${first.id}">▶ <span>ابدأ بأقدم تسليم</span></a></div>` : ""}
         <div class="studio-table-wrap">
           <table class="studio-table">
-            <thead><tr><th>المهمة</th><th>الليدر</th><th>الاسم المستعار</th><th>النوع</th><th>الجمل</th><th></th></tr></thead>
+            <thead><tr><th>الليدر</th><th>الاسم المستعار</th><th>النوع</th><th>الجمل</th><th>الانتظار</th><th></th></tr></thead>
             <tbody>
-              ${sessions.map(s => `
+              ${sessions.map((s) => `
                 <tr id="row-${s.id}">
-                  <td>${escapeHtml(s.task_title)}</td>
-                  <td><span class="studio-code">${s.leader_code}</span></td>
-                  <td>${escapeHtml(s.fake_name)}</td>
-                  <td>${GENDER_LABELS[s.gender] || s.gender}</td>
+                  <td><span class="studio-code">${escapeHtml(s.leader_code)}</span></td>
+                  <td>${escapeHtml(s.fake_name)} ${s.resubmitted ? `<span class="studio-pill qa-resub">إعادة تسليم</span>` : ""}</td>
+                  <td>${GENDER_LABELS[s.gender] || escapeHtml(s.gender)}</td>
                   <td>${s.sample_count}</td>
+                  <td>${waitHtml(s.updated_at || s.created_at)}</td>
                   <td style="display:flex; gap:6px; flex-wrap:wrap;">
                     <a href="qa-review.html?session=${s.id}" class="studio-btn studio-btn-secondary" style="padding:5px 10px; font-size:0.75rem;">🎧 دخول</a>
                     <button class="studio-btn studio-btn-primary" style="padding:5px 10px; font-size:0.75rem;" onclick="quickApprove('${s.id}')">✅ قبول</button>
@@ -111,17 +232,48 @@
                 </tr>`).join("")}
             </tbody>
           </table>
-        </div>`;
-    } catch (err) {
-      wrap.innerHTML = `<div class="studio-empty"><p>${err.message}</p></div>`;
-    }
+        </div>
+      </div>`;
+    return `<div class="studio-card qa-box open" id="box-${i}">${head}${body}</div>`;
   }
+
+  // a decided submission leaves its box; an empty box disappears
+  function removeSession(sessionId) {
+    for (const b of state.boxes) {
+      const idx = b.sessions.findIndex((s) => s.id === sessionId);
+      if (idx === -1) continue;
+      b.sessions.splice(idx, 1);
+      b.pending = b.sessions.length;
+      b.leaders = Array.from(new Set(b.sessions.map((s) => s.leader_code))).sort();
+      if (state.filter[b.key] && !b.leaders.includes(state.filter[b.key])) delete state.filter[b.key];
+      break;
+    }
+    state.boxes = state.boxes.filter((b) => b.sessions.length);
+    render();
+  }
+
+  document.getElementById("pending-wrap").addEventListener("click", (e) => {
+    const el = e.target.closest("[data-act]");
+    if (!el) return;
+    const b = state.boxes[Number(el.dataset.bi)];
+    if (!b) return;
+    if (el.dataset.act === "toggle") {
+      if (state.open.has(b.key)) state.open.delete(b.key); else state.open.add(b.key);
+      saveOpen();
+    } else if (el.dataset.act === "leader") {
+      if (el.dataset.leader) state.filter[b.key] = el.dataset.leader; else delete state.filter[b.key];
+    }
+    render();
+  });
+  document.getElementById("qa-search").addEventListener("input", (e) => { state.q = e.target.value; render(); });
+  document.getElementById("qa-open-all").addEventListener("click", () => { state.boxes.forEach((b) => state.open.add(b.key)); saveOpen(); render(); });
+  document.getElementById("qa-close-all").addEventListener("click", () => { state.open.clear(); saveOpen(); render(); });
 
   async function quickApprove(sessionId) {
     if (!confirm("متأكد إنك عايز تقبل التسليم ده بكل تسجيلاته؟")) return;
     try {
       await NMStudio.apiApproveSession(sessionId);
-      document.getElementById(`row-${sessionId}`).remove();
+      removeSession(sessionId);
     } catch (err) {
       alert(err.message);
     }
@@ -146,7 +298,7 @@
     try {
       const reason = document.getElementById("reject-reason-input").value.trim();
       await NMStudio.apiRejectAllSession(rejectTargetId, reason || "التسجيل كله محتاج إعادة");
-      document.getElementById(`row-${rejectTargetId}`).remove();
+      removeSession(rejectTargetId);
       document.getElementById("reject-overlay").classList.add("hidden");
     } catch (err) {
       errorBox.textContent = err.message;

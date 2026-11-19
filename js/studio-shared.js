@@ -190,6 +190,8 @@
 
   // ---- qa: review queue -----------------------------------------------
   function apiGetPendingReviews() { return apiFetch("/api/studio/qa/pending"); }
+  // same waiting submissions, grouped: one box per task name (an old server answers 404 -> the page groups the flat list itself)
+  function apiGetPendingBoxes() { return apiFetch("/api/studio/qa/boxes"); }
   function apiGetReviewDetail(sessionId) { return apiFetch(`/api/studio/qa/sessions/${sessionId}`); }
   function apiApproveSession(sessionId) {
     return apiFetch(`/api/studio/qa/sessions/${sessionId}/approve`, { method: "POST" });
@@ -324,7 +326,7 @@
     apiFetch, refreshMe, requireStudioRole,
     apiCreateTask, apiUploadScript, apiUploadScripts, apiAssignScripts, apiUploadCodes, apiUploadFakeNames, apiUploadSampleAudio, apiUploadBulkSampleAudio, apiPublishTask,
     apiGetMyTasks, apiGetTaskDetail, apiGetLeaders, apiCreateQaReviewer, apiGetQaReviewers,
-    apiGetPendingReviews, apiGetReviewDetail, apiApproveSession, apiRejectAllSession,
+    apiGetPendingReviews, apiGetPendingBoxes, apiGetReviewDetail, apiApproveSession, apiRejectAllSession,
     apiSubmitReview, qaFetchSampleAudioUrl,
     apiFinalizeInfo, apiFinalizeRun, apiLeaderOverview, apiDriveStatus, apiDriveConnectUrl,
     apiGetTask, apiUpdateTask, apiDeleteTask, apiRemoveTaskLeader, apiUpdateSample, apiDeleteScript, apiUpdateQuotas, apiUpdateLeaderQuotas, apiAddTaskLeader, apiCreateLeader, apiUpdateLeader, apiQaStats,
