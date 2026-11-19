@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>التسجيل — Studio</title>
 <meta name="description" content="سجّل جملك الصوتية وسلّمها بسهولة · Record and submit voice tasks">
-<meta name="theme-color" content="#0B0D10">
+<meta name="theme-color" content="#E9F5F9">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" href="assets/favicon.ico" sizes="any">
@@ -33,7 +33,7 @@
   .rec-progress-track { height: 6px; background: var(--studio-surface-2); border-radius: 999px; overflow: hidden; margin: 14px 0 22px; }
   .rec-progress-fill { height: 100%; background: var(--studio-accent); transition: width 0.25s; }
   .rec-sentence { font-size: 1.4rem; font-weight: 700; text-align: center; padding: 30px 16px; line-height: 1.6; }
-  .rec-timer { text-align: center; font-family: var(--studio-mono); font-size: 1.1rem; color: var(--studio-accent); margin-bottom: 10px; }
+  .rec-timer { text-align: center; font-family: var(--studio-mono); font-size: 1.1rem; color: var(--studio-accent-text); margin-bottom: 10px; }
   .rec-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--studio-danger); display: inline-block; margin-inline-end: 6px; animation: pulse 1s infinite; }
   @keyframes pulse { 50% { opacity: 0.3; } }
   .rec-main-btn {
@@ -52,14 +52,14 @@
   .rec-sample-dot.done { background: var(--studio-accent); }
   .rec-sample-dot.current { outline: 2px solid var(--studio-text); outline-offset: 2px; }
   .rec-sample-dot.queued { background: var(--studio-warn); }
-  .rec-spec { font-family: var(--studio-mono); font-size: 0.95rem; color: var(--studio-accent); margin: 6px 0 4px; }
+  .rec-spec { font-family: var(--studio-mono); font-size: 0.95rem; color: var(--studio-accent-text); margin: 6px 0 4px; }
   .rec-meter { height: 8px; background: var(--studio-surface-2); border-radius: 999px; overflow: hidden; margin: 10px 0 14px; }
   .rec-meter-fill { height: 100%; width: 0%; background: var(--studio-accent); transition: width 0.06s linear; }
   .rec-meter-fill.hot { background: var(--studio-danger); }
   .rec-note { font-size: 0.88rem; line-height: 1.7; margin: 6px 0 0; }
   .rec-note.warn { color: var(--studio-warn); }
   .rec-note.bad { color: var(--studio-danger); }
-  .rec-note.ok { color: var(--studio-accent); }
+  .rec-note.ok { color: var(--studio-accent-text); }
   .rec-banner { margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--studio-warn); background: #3A1A00; color: var(--studio-warn); font-weight: 700; font-size: 0.92rem; }
 </style>
 </head>
@@ -75,7 +75,7 @@
   <div id="loading-box" class="studio-card text-center"><p class="studio-hint mb-0">جاري تحميل الجلسة...</p></div>
 
   <div id="recorder-box" class="hidden">
-    <div id="rework-banner" class="hidden studio-card" style="background:#3A1A00; border-color:var(--studio-warn); margin-bottom:16px;">
+    <div id="rework-banner" class="hidden studio-card" style="background:#FFF4DD; border-color:var(--studio-warn); margin-bottom:16px;">
       <p class="mb-0" style="color:var(--studio-warn); font-weight:700;">⚠️ التاسك ده محتاج إعادة لبعض الجمل بس</p>
       <p class="studio-hint mb-0" id="rework-reason-text" style="margin-top:4px;"></p>
       <ol id="rework-list" style="list-style:none; padding:0; margin:10px 0 0;"></ol>
@@ -621,7 +621,7 @@
     }
     if (!waveform) {
       waveform = new WaveformVisualizer($("waveform-canvas"), {
-        barColor: "#2DD4BF", barColorActive: "#2DD4BF", backgroundColor: "#14171C", barWidth: 3, barGap: 2,
+        barColor: "#7BB4F2", barColorActive: "#007AFF", backgroundColor: "#F1F7FB", barWidth: 3, barGap: 2,
       });
     }
     r.onAutoStop = () => {
