@@ -165,15 +165,15 @@
     in_progress: "لسه بتسجّل",
     submitted: "اتسلّمت — في انتظار المراجعة",
     reviewing: "بتتراجع دلوقتي",
-    approved: "✅ اتقبلت",
+    approved: "⏳ في انتظار الفيدباك",
     rejected: "❌ محتاجة إعادة",
     expired: "⛔ انتهت مهلة الإعادة — الاسم اتسحب",
   };
-  const STATUS_CLASS = { approved: "status-approved", rejected: "status-rejected", expired: "status-rejected", submitted: "status-pending", reviewing: "status-pending" };
+  const STATUS_CLASS = { approved: "status-pending", rejected: "status-rejected", expired: "status-rejected", submitted: "status-pending", reviewing: "status-pending" };
   // a session withdrawn for sitting idle (never submitted, so it never had a rework deadline)
   // v13: a task with no QA review is approved the moment it is submitted — say "delivered", not "accepted" (the company accepts later)
   const statusLabel = (s) => (s.status === "expired" && !s.rework_deadline) ? "⛔ اتسحبت — فضلت من غير تسجيل"
-    : (s.status === "approved" && s.task_skip_qa) ? "✅ اتسلّمت"
+    : (s.status === "approved" && s.accepted_at) ? "✅ اكتملت"      // the company accepted it: nothing left to wait for
     : (STATUS_LABELS[s.status] || s.status);
 
   function renderMine(sessions) {
@@ -195,7 +195,7 @@
                 <td>${escapeHtml(s.fake_name)}</td>
                 <td>${s.recorded_count} / ${s.sample_count}</td>
                 <td>
-                  <span class="studio-pill ${STATUS_CLASS[s.status] || ""}">${statusLabel(s)}</span>
+                  <span class="studio-pill ${s.status === "approved" && s.accepted_at ? "status-approved" : (STATUS_CLASS[s.status] || "")}">${statusLabel(s)}</span>
                   ${s.accepted_at ? `<div style="margin-top:6px;"><span class="studio-pill status-approved">🏆 تم قبوله من الشركة</span></div>` : ""}
                   ${s.status === "rejected" ? `<div class="studio-hint" style="margin-top:4px; max-width:260px;">⚠️ ${escapeHtml(s.rejection_reason || "")}</div>` : ""}
                 </td>

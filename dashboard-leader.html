@@ -162,7 +162,7 @@
                 company: ["status-rejected", "↩️ اتراجع من الشركة — محتاج إعادة"],
                 final: ["status-rejected", "🚫 رفض نهائي"],
               };
-              const st = CAT[x.cat] || (x.status === "approved" && x.delivered ? ["status-approved", "📦 اتسلّم للشركة"] : x.status === "approved" ? (x.task_skip_qa ? ["status-approved", "✅ اتسلّم — راح للهيد ليدر"] : ["status-approved", "✅ اتراجع من خلالنا"]) : (SESSION_STATUS[x.status] || ["", x.status]));
+              const st = CAT[x.cat] || (x.status === "approved" && x.delivered ? ["status-approved", "📦 اتسلّم للشركة"] : x.status === "approved" ? (x.accepted_at ? ["status-approved", "✅ اكتملت"] : ["status-pending", "⏳ في انتظار الفيدباك"]) : (SESSION_STATUS[x.status] || ["", x.status]));
               const showNote = x.status === "rejected" || x.cat === "company";
               const left = showNote && x.rework_deadline ? NMStudio.timeLeft(x.rework_deadline) : null;
               const note = showNote

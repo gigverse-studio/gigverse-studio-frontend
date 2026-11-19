@@ -17,6 +17,8 @@ window.STUDIO_I18N = { en: {
   "بدون مراجعة QA": "No QA review",
   "بدون QA": "No QA",
   "✅ اتسلّمت": "✅ Submitted",
+  "⏳ في انتظار الفيدباك": "⏳ Awaiting feedback",
+  "✅ اكتملت": "✅ Completed",
   "✅ اتسلّم — راح للهيد ليدر": "✅ Submitted — went to the head leader",
   "شكرًا على وقتك. التسجيلات بتاعتك اتسلّمت.": "Thanks for your time. Your recordings have been submitted.",
   "تخطّي مراجعة الـ QA محتاج migration v13 — شغّلها في Supabase الأول.": "Skipping QA review needs migration v13 — run it in Supabase first.",
