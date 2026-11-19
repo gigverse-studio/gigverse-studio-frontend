@@ -1478,4 +1478,7 @@ window.STUDIO_I18N = { en: {
   "ابدأ بأقدم تسليم": "Start with the oldest submission",
   "مفيش نتايج بالاسم ده.": "No results for this name.",
   "تعذر تحميل صناديق المراجعة": "Could not load the review boxes",
+  "كود": "Code",
+  "السكريبت اللي خده": "The script he took",
+  "الكود اللي خده": "The code he took",
 } };

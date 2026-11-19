@@ -215,6 +215,7 @@
 
 <div id="toast" class="fb-toast hidden"></div>
 
+<script src="js/studio-workitem.js"></script>
 <script src="js/studio-shared.js"></script>
 <script src="js/studio-hours.js"></script>
 <script>
@@ -485,7 +486,7 @@
       <tbody>${[...people.values()].map((p) => `
         <tr>
           <td class="fb-email">${p.labels.map(esc).join("<br>")}<br><span class="studio-hint"><span>صف</span> ${p.rows.join(LOCALE === "en-GB" ? ", " : "، ")}</span></td>
-          <td>${p.session ? `<span class="studio-code">${esc(p.session.fakeName)}</span><br>${esc(p.session.realName || "")}<br><span class="fb-email">${esc(p.session.email || "")}</span>` : "—"}</td>
+          <td>${p.session ? `<span class="studio-code">${esc(p.session.fakeName)}</span><br>${esc(p.session.realName || "")}<br><span class="fb-email">${esc(p.session.email || "")}</span>${NMWork.tag(p.session.workItem)}` : "—"}</td>
           <td>${p.session ? esc(p.session.leaderCode) : "—"}</td>
           <td><div class="fb-side">${p.recs.sort((x, y) => (x.n ?? 1e9) - (y.n ?? 1e9)).map((x) => `<span class="fb-rec">${x.n === null ? "—" : chips([x.n])}${x.note}</span>`).join("")}</div></td>
           <td>${p.problems.length ? p.problems.map((x) => `<div>${chips(x.nums)} ${esc(x.text)}</div>`).join("") : "—"}</td>
@@ -591,7 +592,7 @@
     const probs = p.problems.filter((x) => x.text);
     const delivered = p.reworkedAt && ["at_qa", "ready", "qa_returned", "collecting"].includes(p.state);
     return `<tr>
-      <td><span class="fb-email">${esc(p.label)}</span><br><span class="studio-code">${esc(p.fakeName)}</span> <span class="studio-hint">${SYM[p.gender] || ""}</span></td>
+      <td><span class="fb-email">${esc(p.label)}</span><br><span class="studio-code">${esc(p.fakeName)}</span> <span class="studio-hint">${SYM[p.gender] || ""}</span>${NMWork.tag(p.workItem)}</td>
       <td>${esc(p.leaderCode)}</td>
       <td>${p.numbers.map(chip).join("")}${probs.length ? `<div class="studio-hint">${probs.map((x) => `${x.numbers.join(", ")}: ${esc(x.text)}`).join(" | ")}</div>` : ""}</td>
       <td><span class="studio-pill ${st[0]}">${st[1]}</span></td>
@@ -622,7 +623,7 @@
       <p class="studio-hint">إكسيل بأسماء اللي سلّموا الريورك زي ما هي مكتوبة في ملف الشركة، مع تاريخ التسليم واسم الـ QA اللي راجع.</p>
       ${ready.length ? `<div class="studio-table-wrap"><table class="studio-table">
         <thead><tr><th>الاسم في الملف</th><th>الاسم المستعار</th><th>النوع</th><th>الجمل المعادة</th><th>سلّم الريورك</th><th>QA</th></tr></thead>
-        <tbody>${ready.map((p) => `<tr><td class="fb-email">${esc(p.label)}</td><td><span class="studio-code">${esc(p.fakeName)}</span></td><td>${SYM[p.gender] || ""}</td><td>${p.numbers.map(chip).join("")}</td><td>${esc(fmt(p.reworkedAt, true))}</td><td>${esc(p.qaName || "—")}</td></tr>`).join("")}</tbody>
+        <tbody>${ready.map((p) => `<tr><td class="fb-email">${esc(p.label)}</td><td><span class="studio-code">${esc(p.fakeName)}</span>${NMWork.tag(p.workItem)}</td><td>${SYM[p.gender] || ""}</td><td>${p.numbers.map(chip).join("")}</td><td>${esc(fmt(p.reworkedAt, true))}</td><td>${esc(p.qaName || "—")}</td></tr>`).join("")}</tbody>
       </table></div>` : `<p class="studio-hint">مفيش حد جاهز دلوقتي.</p>`}
       <div class="fb-btnrow"><button class="studio-btn studio-btn-secondary" data-sheet data-file="${esc(f.fileId)}" ${ready.length ? "" : "disabled"}>⬇️ تنزيل الشيت (Excel)</button></div>`;
     return `
@@ -704,7 +705,7 @@
               </summary>
               <div class="studio-table-wrap" style="margin-top:10px;"><table class="studio-table">
                 <thead><tr><th>الاسم في الملف</th><th>الاسم المستعار</th><th>الجمل المعادة</th><th>سلّم الريورك</th><th>QA</th><th>الليدر</th></tr></thead>
-                <tbody>${b.people.map((p) => `<tr><td class="fb-email">${esc(p.label)}</td><td><span class="studio-code">${esc(p.fakeName)}</span></td><td>${p.numbers.map(chip).join("")}</td><td>${esc(fmt(p.reworkedAt, true))}</td><td>${esc(p.qaName || "—")}</td><td>${esc(p.leaderCode)}</td></tr>`).join("")}</tbody>
+                <tbody>${b.people.map((p) => `<tr><td class="fb-email">${esc(p.label)}</td><td><span class="studio-code">${esc(p.fakeName)}</span>${NMWork.tag(p.workItem)}</td><td>${p.numbers.map(chip).join("")}</td><td>${esc(fmt(p.reworkedAt, true))}</td><td>${esc(p.qaName || "—")}</td><td>${esc(p.leaderCode)}</td></tr>`).join("")}</tbody>
               </table></div>
             </details>`).join("")}
         </div>`).join("")}`).join("");

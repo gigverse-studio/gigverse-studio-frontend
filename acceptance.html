@@ -196,6 +196,7 @@
 
 <div id="toast" class="fb-toast hidden"></div>
 
+<script src="js/studio-workitem.js"></script>
 <script src="js/studio-shared.js"></script>
 <script>
   NMStudio.requireStudioRole("head_leader");
@@ -319,7 +320,7 @@
     const ppl = detail.people, acc = ppl.filter((p) => p.acceptedAt).length;
     const needle = pQuery.trim().toLowerCase();
     const list = ppl.filter((p) => (pFilter === "all" || (pFilter === "yes" ? p.acceptedAt : !p.acceptedAt))
-      && (!needle || [p.fakeName, p.realName, p.leaderCode].some((x) => String(x || "").toLowerCase().includes(needle))));
+      && (!needle || [p.fakeName, p.realName, p.leaderCode, NMWork.text(p.workItem)].some((x) => String(x || "").toLowerCase().includes(needle))));
     const files = detail.files.length
       ? `<table class="studio-table"><thead><tr><th>الملف</th><th>التاريخ</th><th>عدد المقبولين</th><th></th></tr></thead><tbody>${detail.files.map((f) => `<tr>
           <td class="ac-code">${esc(f.fileName || "—")}</td><td>${esc(fmt(f.createdAt))}</td><td><b>${f.accepted}</b></td>
@@ -334,7 +335,7 @@
         <div class="studio-field" style="max-width:300px; margin:0 0 8px;"><input type="search" id="p-q" placeholder="ابحث بالاسم أو كود الليدر..." value="${esc(pQuery)}"></div>
         ${list.length ? `<div class="studio-table-wrap"><table class="studio-table"><thead><tr><th>${idLabel}</th><th>المتسجّل</th><th>الليدر</th><th>النوع</th><th>القبول</th><th></th></tr></thead>
           <tbody>${list.slice(0, pShown).map((p) => `<tr>
-            <td><span class="studio-code">${esc(p.fakeName)}</span></td><td>${esc(p.realName || "—")}</td><td><span class="studio-code">${esc(p.leaderCode)}</span></td>
+            <td><span class="studio-code">${esc(p.fakeName)}</span>${NMWork.tag(p.workItem)}</td><td>${esc(p.realName || "—")}</td><td><span class="studio-code">${esc(p.leaderCode)}</span></td>
             <td>${SYM[p.gender] || ""} ${p.age == null ? "" : esc(p.age)}</td>
             <td>${p.acceptedAt ? `<span class="ac-ok">🏆 <span>مقبول</span></span><div class="ac-sub"><span>${esc(fmt(p.acceptedAt, true))}</span></div>`
               : p.delivered ? `<span class="ac-faint">⏳ <span>قيد الانتظار</span></span>` : `<span class="ac-faint"><span>لم يُسلَّم للشركة بعد</span></span>`}</td>
@@ -554,7 +555,7 @@
     $("result-table").innerHTML = `<thead><tr><th>الاسم في الملف</th><th>المتسجّل</th><th>الليدر</th><th>الحالة</th></tr></thead>
       <tbody>${[...people.values()].map(({ r, labels }) => `<tr>
         <td class="fb-email">${labels.map(esc).join("<br>")}</td>
-        <td><span class="studio-code">${esc(r.session.fakeName)}</span><br>${esc(r.session.realName || "")}<br><span class="fb-email">${esc(r.session.email || "")}</span></td>
+        <td><span class="studio-code">${esc(r.session.fakeName)}</span><br>${esc(r.session.realName || "")}<br><span class="fb-email">${esc(r.session.email || "")}</span>${NMWork.tag(r.session.workItem)}</td>
         <td>${esc(r.session.leaderCode)}</td>
         <td>${r.already ? `<span class="studio-hint">🏆 <span>سبق قبوله</span></span>` : `<span class="fb-ok">✅ <span>سيتم قبوله</span></span>`}${r.openFeedback ? `<br><span class="fb-how weak">⚠️ <span>لديه فيدباك مفتوح</span></span>` : ""}</td></tr>`).join("")}</tbody>`;
     const bad = new Map();

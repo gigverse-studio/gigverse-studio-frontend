@@ -206,3 +206,8 @@ body.studio .qa-verdict-btn.active.reject { color: #fff; }
 body.studio .rec-banner { background: #FFF4DD; color: #8A5300; }
 body.studio .rec-main-btn { box-shadow: 0 0 0 6px rgba(2, 66, 155, .08); }
 body.studio .rec-main-btn.recording svg { fill: #fff; }
+
+/* v15 — the script / code a talent took, shown under the talent's name */
+.work-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.work-tag { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: .78rem; white-space: nowrap; background: var(--studio-accent-dim); color: var(--studio-accent-text); }
+.work-tag b { font-family: var(--studio-mono); font-weight: 700; }
