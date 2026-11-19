@@ -24,6 +24,17 @@
     localStorage.removeItem("studio_user");
   }
 
+  // The server says "session_expired" only when the login itself is dead (expired / account gone). Then there is nothing to
+  // retry: clear it and send the person to the login page with a message, instead of printing a raw error in a card.
+  function sessionExpired(res, data) {
+    if (res.status === 401 && data && data.code === "session_expired") {
+      logout();
+      location.href = rel("login.html") + "?expired=1";
+      return true;
+    }
+    return false;
+  }
+
   // fetch() that turns a dead network into a readable message instead of the browser's "Failed to fetch"
   async function safeFetch(url, opts) {
     try { return await fetch(url, opts); }
@@ -42,7 +53,10 @@
     }
     let data = null;
     try { data = await res.json(); } catch (_) {}
-    if (!res.ok) { const e = new Error((data && data.error) || "حصل خطأ غير متوقع."); e.status = res.status; throw e; }
+    if (!res.ok) {
+      sessionExpired(res, data);
+      const e = new Error((data && data.error) || "حصل خطأ غير متوقع."); e.status = res.status; throw e;
+    }
     return data;
   }
 
@@ -88,7 +102,7 @@
     const res = await safeFetch(`${API_BASE_URL}${path}`, { method: "POST", headers, body: form });
     let data = null;
     try { data = await res.json(); } catch (_) {}
-    if (!res.ok) throw new Error((data && data.error) || "تعذر رفع الملف");
+    if (!res.ok) { sessionExpired(res, data); throw new Error((data && data.error) || "تعذر رفع الملف"); }
     return data;
   }
 
@@ -103,7 +117,7 @@
     const res = await safeFetch(`${API_BASE_URL}${path}`, { method: "POST", headers, body: form });
     let data = null;
     try { data = await res.json(); } catch (_) {}
-    if (!res.ok) throw new Error((data && data.error) || "تعذر رفع الملفات");
+    if (!res.ok) { sessionExpired(res, data); throw new Error((data && data.error) || "تعذر رفع الملفات"); }
     return data;
   }
   // gender (v9): "any" (default) | "male" | "female" = who the uploaded scripts are for.

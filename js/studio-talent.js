@@ -27,6 +27,17 @@
     return currentTalent();
   }
 
+  // Same idea as js/studio-shared.js: a dead login goes back to the login page (and returns here after) instead of an error card.
+  // Only the server's explicit "session_expired" counts, so a wrong password at login is untouched.
+  function sessionExpired(res, data) {
+    if (res.status === 401 && data && data.code === "session_expired") {
+      logout();
+      location.href = `talent-login.html?expired=1&return=${encodeURIComponent(location.pathname.split("/").pop() + location.search)}`;
+      return true;
+    }
+    return false;
+  }
+
   async function apiFetch(path, options = {}) {
     const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
     const token = authToken();
@@ -40,6 +51,7 @@
     let data = null;
     try { data = await res.json(); } catch (_) {}
     if (!res.ok) {
+      sessionExpired(res, data);
       const err = new Error((data && data.error) || "حصل خطأ غير متوقع.");
       err.status = res.status;
       err.code = data && data.code;       // e.g. "task_locked", "wrong_password"
@@ -65,6 +77,7 @@
     let data = null;
     try { data = await res.json(); } catch (_) {}
     if (!res.ok) {
+      // an upload on a dead login is NOT redirected: the take stays safe in the device queue and is retried after login
       const err = new Error((data && data.error) || "تعذر رفع الملف");
       err.status = res.status;          // 4xx = permanent (rejected), 5xx/none = retryable
       err.code = data && data.code;     // machine-readable reason, e.g. "wrong_sample_rate"

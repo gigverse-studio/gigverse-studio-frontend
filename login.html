@@ -68,6 +68,7 @@
 
 <script src="js/studio-shared.js"></script>
 <script>
+  if (new URLSearchParams(location.search).get("expired") === "1") document.getElementById("login-error").textContent = "الجلسة انتهت. سجّل دخول تاني.";
   let selectedRole = "leader";
   document.querySelectorAll("#role-tabs .studio-tab").forEach(tab => {
     tab.addEventListener("click", () => {

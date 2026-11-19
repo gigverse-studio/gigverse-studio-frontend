@@ -101,6 +101,7 @@
 <script src="js/studio-talent.js"></script>
 <script>
   const returnTo = new URLSearchParams(location.search).get("return") || "tasks.html";
+  if (new URLSearchParams(location.search).get("expired") === "1") document.getElementById("login-error").textContent = "الجلسة انتهت. سجّل دخول تاني.";
 
   document.querySelectorAll("#mode-tabs .studio-tab").forEach(tab => {
     tab.addEventListener("click", () => {

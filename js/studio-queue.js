@@ -48,7 +48,8 @@
   }
 
   function isPermanent(err) {
-    return !!(err && err.status && err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429);
+    // 401 = the login is dead / the server could not check it: the take must NOT be thrown away, keep it and retry later
+    return !!(err && err.status && err.status >= 400 && err.status < 500 && err.status !== 401 && err.status !== 408 && err.status !== 429);
   }
 
   /**
